@@ -2,233 +2,330 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Dinosaur Jump Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gurjeev's Games</title>
   <style>
-    * { box-sizing: border-box; font-family: Arial, sans-serif; }
+    /* ── Football cursor ── */
+    * { cursor: url("football.png") 32 32, auto; }
 
-    body {
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Exo+2:wght@400;600&display=swap');
+
+    :root {
+      --star-count: 200;
+    }
+
+    html, body {
       margin: 0;
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(#9dd6ff, #eaf7ff);
+      padding: 0;
+      min-height: 100vh;
+      background: #020010;
+      font-family: 'Exo 2', sans-serif;
+      overflow-x: hidden;
+      color: #fff;
     }
 
-    .container {
-      width: 800px;
-      max-width: 95%;
-      background: white;
-      padding: 20px;
-      border-radius: 16px;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+    /* ── Starfield ── */
+    #stars-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
     }
 
-    h1 { text-align: center; margin: 0 0 10px; }
+    /* ── Nebula blobs ── */
+    .nebula {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.25;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .nebula-1 { width: 600px; height: 400px; background: #6a00ff; top: -100px; left: -150px; }
+    .nebula-2 { width: 500px; height: 500px; background: #00b4ff; bottom: -100px; right: -100px; }
+    .nebula-3 { width: 400px; height: 300px; background: #ff00c8; top: 40%; left: 40%; }
 
-    .game {
+    /* ── Content wrapper ── */
+    .page {
       position: relative;
-      height: 250px;
-      overflow: hidden;
-      background: linear-gradient(#e8ffe8, #c8f7c5);
-      border-radius: 12px;
-      border-bottom: 5px solid #4caf50;
-    }
-
-    .dino {
-      position: absolute;
-      right: 50px;
-      bottom: 0;
-      font-size: 48px;
-      transform: scaleX(-1);
-    }
-
-    .cactus {
-      position: absolute;
-      bottom: 0;
-      font-size: 40px;
-    }
-
-    .scoreboard {
+      z-index: 1;
+      min-height: 100vh;
       display: flex;
-      justify-content: space-between;
-      margin-top: 10px;
-      font-size: 18px;
-      font-weight: bold;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 20px 80px;
     }
 
-    .overlay {
+    /* ── Header ── */
+    header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(2.4rem, 7vw, 5rem);
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      background: linear-gradient(135deg, #fff 0%, #a78bfa 35%, #38bdf8 65%, #f472b6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: none;
+      line-height: 1.1;
+      margin: 0 0 12px;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      color: #94a3b8;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin: 0;
+    }
+
+    .star-row {
+      margin-top: 16px;
+      font-size: 1.4rem;
+      letter-spacing: 0.3em;
+      filter: drop-shadow(0 0 6px #a78bfa);
+    }
+
+    /* ── Games grid ── */
+    .games-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 28px;
+      width: 100%;
+      max-width: 860px;
+    }
+
+    /* ── Game card ── */
+    .game-card {
+      position: relative;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 36px 28px 28px;
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+      overflow: hidden;
+    }
+
+    .game-card::before {
+      content: '';
       position: absolute;
       inset: 0;
-      background: rgba(255,255,255,0.9);
-      display: none;
+      border-radius: 20px;
+      background: radial-gradient(ellipse at 30% 30%, var(--card-glow, rgba(167,139,250,0.15)), transparent 70%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .game-card:hover::before { opacity: 1; }
+
+    .game-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 30px var(--card-shadow, rgba(167,139,250,0.3));
+      border-color: rgba(255,255,255,0.25);
+    }
+
+    .game-card:active {
+      transform: translateY(-4px) scale(1.01);
+    }
+
+    .card-emoji {
+      font-size: 3.5rem;
+      line-height: 1;
+      margin-bottom: 16px;
+      display: block;
+      filter: drop-shadow(0 0 12px rgba(255,255,255,0.5));
+      transition: transform 0.3s ease;
+    }
+
+    .game-card:hover .card-emoji {
+      transform: scale(1.15) rotate(-5deg);
+    }
+
+    .card-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin: 0 0 8px;
+      letter-spacing: 0.04em;
+    }
+
+    .card-desc {
+      font-size: 0.88rem;
+      color: #94a3b8;
+      margin: 0 0 20px;
+      line-height: 1.5;
+    }
+
+    .card-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #c4b5fd;
+    }
+
+    .play-btn {
+      position: absolute;
+      bottom: 28px;
+      right: 24px;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--btn-a, #7c3aed), var(--btn-b, #2563eb));
+      display: flex;
       align-items: center;
       justify-content: center;
-      flex-direction: column;
-      font-size: 24px;
+      font-size: 1rem;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
-    button {
-      margin-top: 10px;
-      padding: 10px 20px;
-      font-size: 16px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      background: #4caf50;
-      color: white;
+    .game-card:hover .play-btn {
+      transform: scale(1.15);
+      box-shadow: 0 6px 24px rgba(0,0,0,0.5);
     }
 
-    button:hover { background: #388e3c; }
+    /* Card accent colours */
+    .card-dino    { --card-glow: rgba(52,211,153,0.2); --card-shadow: rgba(52,211,153,0.3); --btn-a: #059669; --btn-b: #0ea5e9; }
+    .card-car     { --card-glow: rgba(251,146,60,0.2);  --card-shadow: rgba(251,146,60,0.3);  --btn-a: #ea580c; --btn-b: #dc2626; }
 
-    .hint { text-align: center; font-size: 14px; margin-top: 6px; color: #555; }
+    /* ── Footer ── */
+    footer {
+      margin-top: 72px;
+      color: #334155;
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-align: center;
+    }
+
+    /* ── Shooting star animation ── */
+    @keyframes shoot {
+      0%   { transform: translateX(0) translateY(0); opacity: 1; }
+      100% { transform: translateX(600px) translateY(300px); opacity: 0; }
+    }
+
+    .shooting-star {
+      position: fixed;
+      width: 3px;
+      height: 3px;
+      background: white;
+      border-radius: 50%;
+      box-shadow: 0 0 6px 2px rgba(255,255,255,0.8);
+      pointer-events: none;
+      z-index: 0;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🦖 Dino Jump Game</h1>
-    <div class="game" id="game">
-      <div class="dino" id="dino">🦖</div>
-      <div class="overlay" id="overlay">
-        Game Over
-        <button onclick="restart()">Restart</button>
-      </div>
-    </div>
-    <div class="scoreboard">
-      <div id="score">Score: 0</div>
-      <div id="highScore">High Score: 0</div>
-    </div>
-    <div class="hint">Press SPACE or click to jump</div>
+
+  <!-- Nebula blobs -->
+  <div class="nebula nebula-1"></div>
+  <div class="nebula nebula-2"></div>
+  <div class="nebula nebula-3"></div>
+
+  <!-- Starfield canvas -->
+  <canvas id="stars-canvas"></canvas>
+
+  <div class="page">
+    <header>
+      <h1 class="title">Gurjeev's Games</h1>
+      <p class="subtitle">Pick a game &amp; blast off</p>
+      <div class="star-row">✦ ✧ ✦ ✧ ✦</div>
+    </header>
+
+    <main class="games-grid">
+
+      <!-- Dino Jump -->
+      <a href="dino.html" class="game-card card-dino">
+        <span class="card-emoji">🦕</span>
+        <h2 class="card-title">Dinosaur Jump</h2>
+        <p class="card-desc">Dodge obstacles and survive as long as you can in this classic endless runner.</p>
+        <span class="card-badge">Endless Runner</span>
+        <div class="play-btn">▶</div>
+      </a>
+
+      <!-- Retro Car -->
+      <a href="retro-car-game.html" class="game-card card-car">
+        <span class="card-emoji">🏎️</span>
+        <h2 class="card-title">Turbo Madness</h2>
+        <p class="card-desc">100 levels of high-speed retro racing chaos. Can you reach the finish?</p>
+        <span class="card-badge">100 Levels</span>
+        <div class="play-btn">▶</div>
+      </a>
+
+    </main>
+
+    <footer>© Gurjeev · Made with 🚀 in the galaxy</footer>
   </div>
 
   <script>
-    const game = document.getElementById('game');
-    const dino = document.getElementById('dino');
-    const scoreEl = document.getElementById('score');
-    const highScoreEl = document.getElementById('highScore');
-    const overlay = document.getElementById('overlay');
+    // ── Starfield ──
+    const canvas = document.getElementById('stars-canvas');
+    const ctx = canvas.getContext('2d');
+    let W, H, stars = [];
 
-    let dinoY = 0;
-    let velocity = 0;
-    let gravity = 0.8;
-    let jumping = false;
+    function resize() {
+      W = canvas.width  = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
 
-    let cactuses = [];
-    let score = 0;
-    let running = true;
-
-    // Difficulty variables
-    let spawnTimer = 0;
-    let spawnRate = 90; // lower = more frequent cactuses
-    let speed = 6;      // cactus movement speed
-    let jumpCount = 0;  // counts jumps for difficulty
-
-    let highScore = Number(localStorage.getItem('highScore')) || 0;
-    highScoreEl.textContent = 'High Score: ' + highScore;
-
-    function jump() {
-      if (!jumping && running) {
-        velocity = 14;
-        jumping = true;
-        jumpCount++;
-
-        // Increase difficulty every 10 jumps
-        if (jumpCount % 10 === 0) {
-          speed = Math.min(speed + 0.5, 14);
-          spawnRate = Math.max(spawnRate - 5, 40);
-        }
+    function initStars() {
+      stars = [];
+      for (let i = 0; i < 220; i++) {
+        stars.push({
+          x: Math.random() * W,
+          y: Math.random() * H,
+          r: Math.random() * 1.6 + 0.2,
+          alpha: Math.random() * 0.7 + 0.2,
+          speed: Math.random() * 0.3 + 0.05,
+          twinkleSpeed: Math.random() * 0.02 + 0.005,
+          twinkleDir: Math.random() > 0.5 ? 1 : -1,
+        });
       }
     }
 
-    function spawnCactus() {
-      const cactus = document.createElement('div');
-      cactus.className = 'cactus';
-      cactus.textContent = '🌵';
-      cactus.style.left = '-40px';
-      game.appendChild(cactus);
-      cactuses.push({ el: cactus, x: -40 });
-    }
-
-    function update() {
-      if (!running) return;
-
-      // Dino physics
-      velocity -= gravity;
-      dinoY += velocity;
-      if (dinoY <= 0) {
-        dinoY = 0;
-        velocity = 0;
-        jumping = false;
+    function drawStars() {
+      ctx.clearRect(0, 0, W, H);
+      for (const s of stars) {
+        s.alpha += s.twinkleSpeed * s.twinkleDir;
+        if (s.alpha >= 0.9 || s.alpha <= 0.1) s.twinkleDir *= -1;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,255,255,${s.alpha})`;
+        ctx.fill();
       }
-      dino.style.bottom = dinoY + 'px';
-
-      // Spawn cactuses
-      spawnTimer++;
-      if (spawnTimer >= spawnRate) {
-        spawnCactus();
-        spawnTimer = 0;
-      }
-
-      // Move cactuses
-      cactuses.forEach((c, index) => {
-        c.x += speed;
-        c.el.style.left = c.x + 'px';
-
-        const dinoRect = dino.getBoundingClientRect();
-        const cactusRect = c.el.getBoundingClientRect();
-
-        if (
-          dinoRect.left < cactusRect.right &&
-          dinoRect.right > cactusRect.left &&
-          dinoRect.bottom > cactusRect.top
-        ) {
-          gameOver();
-        }
-
-        if (c.x > game.offsetWidth + 40) {
-          c.el.remove();
-          cactuses.splice(index, 1);
-          score++;
-          scoreEl.textContent = 'Score: ' + score;
-        }
-      });
-
-      requestAnimationFrame(update);
+      requestAnimationFrame(drawStars);
     }
 
-    function gameOver() {
-      running = false;
-      if (score > highScore) {
-        highScore = score;
-        localStorage.setItem('highScore', highScore);
-        highScoreEl.textContent = 'High Score: ' + highScore;
-      }
-      overlay.style.display = 'flex';
+    window.addEventListener('resize', () => { resize(); initStars(); });
+    resize(); initStars(); drawStars();
+
+    // ── Shooting stars ──
+    function spawnShootingStar() {
+      const el = document.createElement('div');
+      el.className = 'shooting-star';
+      el.style.top  = Math.random() * 60 + '%';
+      el.style.left = Math.random() * 60 + '%';
+      const dur = (Math.random() * 600 + 500);
+      el.style.animation = `shoot ${dur}ms linear forwards`;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), dur + 50);
     }
 
-    function restart() {
-      cactuses.forEach(c => c.el.remove());
-      cactuses = [];
-      dinoY = 0;
-      velocity = 0;
-      score = 0;
-      jumpCount = 0;
-      speed = 6;
-      spawnRate = 90;
-      spawnTimer = 0;
-      running = true;
-      scoreEl.textContent = 'Score: 0';
-      overlay.style.display = 'none';
-      requestAnimationFrame(update);
-    }
-
-    document.addEventListener('keydown', e => {
-      if (e.code === 'Space') jump();
-    });
-
-    game.addEventListener('click', jump);
-
-    requestAnimationFrame(update);
+    setInterval(spawnShootingStar, 2200);
+    setTimeout(spawnShootingStar, 400);
   </script>
 </body>
 </html>

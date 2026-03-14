@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TURBO MADNESS — 100 Levels</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&display=swap');
+
+  :root {
+    --pixel: 4px;
+    --sky: #5bc8f5;
+    --ground: #5a3a1a;
+    --grass: #4caf50;
+    --yellow: #f5d800;
+    --red: #e53935;
+    --dark: #1a1a2e;
+    --panel: #0d0d1a;
+    --neon: #00ffcc;
+    --neon2: #ff4466;
+    --neon3: #ffdd00;
+    --white: #f0f0f0;
+    --gray: #888;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--dark);
+    font-family: 'Press Start 2P', monospace;
+    overflow: hidden;
+    color: var(--white);
+    image-rendering: pixelated;
+  }
+
+  /* ── SCANLINE OVERLAY ── */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,.18) 2px,
+      rgba(0,0,0,.18) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ── SCREENS ── */
+  .screen {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+    transition: opacity .4s;
+  }
+  .screen.hidden { opacity: 0; pointer-events: none; }
+
+  /* ── TITLE SCREEN ── */
+  #titleScreen {
+    background: radial-gradient(ellipse at 50% 60%, #1a0533 0%, #0d0d1a 100%);
+    gap: 28px;
+  }
+  .title-logo {
+    text-align: center;
+    line-height: 1.6;
+  }
+  .title-logo .line1 {
+    font-size: clamp(20px, 4vw, 40px);
+    color: var(--neon3);
+    text-shadow: 0 0 12px var(--neon3), 0 0 40px #ffaa00aa;
+    animation: flicker 3s infinite;
+  }
+  .title-logo .line2 {
+    font-size: clamp(10px, 2vw, 18px);
+    color: var(--neon);
+    text-shadow: 0 0 10px var(--neon);
+    letter-spacing: 4px;
+  }
+  .pixel-truck {
+    font-size: 80px;
+    animation: bounce 1s ease-in-out infinite alternate;
+    filter: drop-shadow(0 8px 24px #ff440680);
+  }
+  .btn {
+    font-family: 'Press Start 2P', monospace;
+    background: transparent;
+    border: 3px solid var(--neon);
+    color: var(--neon);
+    padding: 14px 32px;
+    font-size: 14px;
+    cursor: pointer;
+    text-shadow: 0 0 8px var(--neon);
+    box-shadow: 0 0 16px var(--neon) inset, 0 0 16px var(--neon);
+    transition: all .15s;
+    image-rendering: pixelated;
+  }
+  .btn:hover {
+    background: var(--neon);
+    color: var(--dark);
+    transform: scale(1.05);
+  }
+  .btn-red {
+    border-color: var(--neon2); color: var(--neon2);
+    text-shadow: 0 0 8px var(--neon2);
+    box-shadow: 0 0 16px var(--neon2) inset, 0 0 16px var(--neon2);
+  }
+  .btn-red:hover { background: var(--neon2); color: var(--dark); }
+
+  .stars {
+    position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+  }
+  .star {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: #fff;
+    animation: twinkle var(--d, 2s) var(--delay, 0s) infinite;
+  }
+
+  /* ── LEVEL SELECT ── */
+  #levelScreen {
+    background: radial-gradient(ellipse at 50% 40%, #001133 0%, #0d0d1a 100%);
+    padding: 20px;
+    gap: 16px;
+    overflow-y: auto;
+  }
+  .level-title {
+    font-size: clamp(12px,2vw,20px);
+    color: var(--neon3);
+    text-shadow: 0 0 10px var(--neon3);
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .level-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+    gap: 8px;
+    max-width: 700px;
+    width: 100%;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 8px;
+  }
+  .level-btn {
+    font-family: 'Press Start 2P', monospace;
+    width: 58px; height: 58px;
+    border: 2px solid #333;
+    background: #111;
+    color: #555;
+    font-size: 9px;
+    cursor: pointer;
+    transition: all .15s;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 4px;
+  }
+  .level-btn.unlocked {
+    border-color: var(--neon); color: var(--neon);
+    text-shadow: 0 0 6px var(--neon);
+    box-shadow: 0 0 8px var(--neon)44;
+  }
+  .level-btn.completed {
+    border-color: var(--neon3); color: var(--neon3);
+    text-shadow: 0 0 6px var(--neon3);
+    background: #1a1500;
+  }
+  .level-btn.unlocked:hover, .level-btn.completed:hover {
+    transform: scale(1.08);
+    box-shadow: 0 0 14px var(--neon);
+  }
+  .star-row { font-size: 7px; letter-spacing: 1px; }
+
+  /* ── GAME SCREEN ── */
+  #gameScreen { background: transparent; padding: 0; }
+
+  canvas {
+    display: block;
+    image-rendering: pixelated;
+    border: none;
+  }
+
+  /* ── HUD ── */
+  #hud {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 16px;
+    background: linear-gradient(180deg, rgba(0,0,0,.75) 0%, transparent 100%);
+    z-index: 100;
+    pointer-events: none;
+  }
+  #hud.hidden { display: none; }
+  .hud-left, .hud-right { display: flex; gap: 16px; align-items: center; }
+  .hud-item {
+    font-size: 9px;
+    color: var(--neon);
+    text-shadow: 0 0 8px var(--neon);
+  }
+  .hud-item span { color: var(--neon3); }
+  #fuel-bar-wrap {
+    width: 100px; height: 10px;
+    border: 2px solid var(--neon);
+    background: #111;
+  }
+  #fuel-bar {
+    height: 100%; width: 100%;
+    background: linear-gradient(90deg, var(--neon3), var(--neon));
+    transition: width .1s;
+  }
+
+  /* ── CONTROLS HUD ── */
+  #controls-hint {
+    position: fixed;
+    bottom: 12px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; gap: 12px;
+    z-index: 100;
+    pointer-events: none;
+  }
+  #controls-hint.hidden { display: none; }
+  .key-hint {
+    font-size: 7px; color: #aaa;
+    border: 1px solid #555;
+    padding: 4px 8px;
+    background: rgba(0,0,0,.5);
+  }
+
+  /* ── OVERLAY PANELS ── */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.8);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .overlay.hidden { display: none; }
+  .overlay-box {
+    border: 3px solid var(--neon);
+    background: var(--panel);
+    padding: 36px 48px;
+    text-align: center;
+    box-shadow: 0 0 40px var(--neon)66;
+    display: flex; flex-direction: column; gap: 16px; align-items: center;
+  }
+  .overlay-box h2 { font-size: clamp(14px,2.5vw,24px); color: var(--neon3); text-shadow: 0 0 12px var(--neon3); }
+  .overlay-box p { font-size: 9px; color: #aaa; line-height: 1.8; }
+  .star-display { font-size: 24px; letter-spacing: 6px; }
+  .btn-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+
+  /* ── MOBILE TOUCH BUTTONS ── */
+  #touch-controls {
+    position: fixed;
+    bottom: 24px; left: 0; right: 0;
+    display: none;
+    justify-content: space-between;
+    padding: 0 24px;
+    z-index: 150;
+    pointer-events: none;
+  }
+  @media (pointer: coarse) { #touch-controls { display: flex; } }
+  .touch-btn {
+    width: 72px; height: 72px;
+    border: 3px solid var(--neon);
+    background: rgba(0,255,204,.1);
+    color: var(--neon);
+    font-size: 24px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 8px;
+    user-select: none;
+    pointer-events: all;
+    box-shadow: 0 0 12px var(--neon)44;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  @keyframes flicker {
+    0%,100%{opacity:1} 50%{opacity:.85} 55%{opacity:.6} 60%{opacity:1}
+  }
+  @keyframes bounce {
+    from{transform:translateY(0)} to{transform:translateY(-12px)}
+  }
+  @keyframes twinkle {
+    0%,100%{opacity:1} 50%{opacity:.1}
+  }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)}
+  }
+  .shake { animation: shake .3s ease; }
+</style>
+</head>
+<body>
+
+<!-- STARS BG -->
+<div class="stars" id="stars"></div>
+
+<!-- TITLE SCREEN -->
+<div class="screen" id="titleScreen">
+  <div class="title-logo">
+    <div class="line1">🏁 TURBO MADNESS 🏁</div>
+    <div class="line2">100 LEVELS OF CHAOS</div>
+  </div>
+  <div class="pixel-truck">🚛</div>
+  <button class="btn" onclick="showLevelSelect()">▶ START GAME</button>
+  <button class="btn btn-red" onclick="showHowTo()">? HOW TO PLAY</button>
+  <p style="font-size:7px;color:#555;margin-top:8px;">USE ARROW KEYS OR WASD · REACH THE FLAG</p>
+</div>
+
+<!-- LEVEL SELECT -->
+<div class="screen hidden" id="levelScreen">
+  <div class="level-title">⚡ SELECT LEVEL ⚡</div>
+  <div class="level-grid" id="levelGrid"></div>
+  <button class="btn btn-red" onclick="showTitle()" style="margin-top:12px;font-size:10px;padding:10px 20px;">◀ BACK</button>
+</div>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div class="hud-left">
+    <div class="hud-item">LVL <span id="hudLevel">1</span></div>
+    <div class="hud-item">⏱ <span id="hudTime">0</span>s</div>
+    <div class="hud-item" id="hudBiome" style="color:#aaa;font-size:7px;"></div>
+  </div>
+  <div class="hud-right">
+    <div class="hud-item">⛽</div>
+    <div id="fuel-bar-wrap"><div id="fuel-bar"></div></div>
+    <div class="hud-item" id="hudSpeed">0 km/h</div>
+  </div>
+</div>
+
+<!-- CONTROLS HINT -->
+<div id="controls-hint" class="hidden">
+  <div class="key-hint">◀ / A — TILT LEFT</div>
+  <div class="key-hint">▶ / D — GAS</div>
+  <div class="key-hint">↑ / W / SPACE — JUMP</div>
+  <div class="key-hint">↓ / S — BRAKE</div>
+  <div class="key-hint">R — RESTART</div>
+</div>
+
+<!-- TOUCH CONTROLS -->
+<div id="touch-controls">
+  <div class="touch-btn" id="btnLeft">◀</div>
+  <div style="display:flex;gap:12px;pointer-events:all">
+    <div class="touch-btn" id="btnBrake" style="border-color:#ff4466;color:#ff4466;">■</div>
+    <div class="touch-btn" id="btnJump" style="border-color:#00ffcc;color:#00ffcc;font-size:18px;">JUMP</div>
+    <div class="touch-btn" id="btnGas" style="border-color:#ffdd00;color:#ffdd00;">▶</div>
+  </div>
+</div>
+
+<!-- WIN OVERLAY -->
+<div class="overlay hidden" id="winOverlay">
+  <div class="overlay-box">
+    <h2>🏆 LEVEL CLEAR!</h2>
+    <div class="star-display" id="winStars">⭐⭐⭐</div>
+    <p id="winTime">Time: 0s</p>
+    <div class="btn-row">
+      <button class="btn" id="btnNext" onclick="nextLevel()">NEXT ▶</button>
+      <button class="btn btn-red" onclick="restartLevel()">↺ RETRY</button>
+      <button class="btn" onclick="showLevelSelect()" style="border-color:#888;color:#888;box-shadow:none;">LEVELS</button>
+    </div>
+  </div>
+</div>
+
+<!-- DEAD OVERLAY -->
+<div class="overlay hidden" id="deadOverlay">
+  <div class="overlay-box" style="border-color:#ff4466;box-shadow:0 0 40px #ff446666">
+    <h2 style="color:#ff4466;text-shadow:0 0 12px #ff4466">💥 WIPEOUT!</h2>
+    <p id="deathReason">The truck flipped over!</p>
+    <div class="btn-row">
+      <button class="btn" onclick="restartLevel()">↺ RETRY</button>
+      <button class="btn btn-red" onclick="showLevelSelect()">LEVELS</button>
+    </div>
+  </div>
+</div>
+
+<!-- HOW TO PLAY -->
+<div class="overlay hidden" id="howToOverlay">
+  <div class="overlay-box" style="max-width:420px">
+    <h2>HOW TO PLAY</h2>
+    <p>
+      ▶ / D — GAS (go right)<br><br>
+      ↑ / W / SPACE — JUMP<br><br>
+      ↓ / S — BRAKE / REVERSE<br><br>
+      ◀ / A — TILT LEFT<br><br>
+      R — RESTART LEVEL<br><br>
+      Reach the checkered flag!<br>
+      Don't flip over!<br>
+      Collect fuel cans to survive!
+    </p>
+    <button class="btn" onclick="document.getElementById('howToOverlay').classList.add('hidden')">GOT IT!</button>
+  </div>
+</div>
+
+<!-- GAME CANVAS -->
+<canvas id="gameCanvas"></canvas>
+
+<script>
+// ════════════════════════════════════════════
+//  TURBO MADNESS — Physics Car Game Engine
+// ════════════════════════════════════════════
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// ── Resize ──
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', () => { resize(); if (gameRunning) buildLevel(); });
+
+// ── Stars ──
+(function buildStars() {
+  const c = document.getElementById('stars');
+  for (let i = 0; i < 120; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;
+      --d:${1+Math.random()*3}s;--delay:${Math.random()*3}s;opacity:${.3+Math.random()*.7}`;
+    c.appendChild(s);
+  }
+})();
+
+// ── Save data ──
+let saveData = JSON.parse(localStorage.getItem('turboMadness') || '{"unlocked":1,"stars":{}}');
+function save() { localStorage.setItem('turboMadness', JSON.stringify(saveData)); }
+
+// ── Level definitions ──
+// Each level: {name, terrain[], hills, obstacles, fuel, gravity, friction}
+// terrain: array of {x,y} world points (road surface)
+// difficulty ramps across 100 levels
+
+// Seeded RNG factory
+function makeRng(seed) {
+  let s = (seed * 1337 + 7) % 2147483647;
+  return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+}
+
+// Difficulty 0..1 over 100 levels
+function diff(n) { return (n - 1) / 99; }
+
+// Clamp terrain Y
+function clampY(y, lo=180, hi=620) { return Math.max(lo, Math.min(hi, y)); }
+
+// ── BIOME GENERATORS ────────────────────────────────────────────
+// 10 distinct biomes, cycling with variation. Each returns {pts, obs, biome}
+
+function biomeFlat(n, rng, W, baseY) {
+  // Mostly flat with gentle rises — tutorial feel
+  const pts = [{x:0, y:baseY}];
+  let x=0, y=baseY;
+  const segs = 8 + Math.floor(n/8);
+  for (let i=0; i<segs; i++) {
+    x += 250 + rng()*200;
+    y = clampY(baseY + (rng()-0.5) * 40 * diff(n));
+    pts.push({x,y});
+  }
+  pts.push({x:W, y:pts[pts.length-1].y});
+  return {pts, biome:'flat'};
+}
+
+function biomeHills(n, rng, W, baseY) {
+  // Rolling sine-like hills, amplitude grows with level
+  const pts = [{x:0, y:baseY}];
+  const amp = 60 + diff(n) * 180;
+  const waveLen = Math.max(200, 600 - diff(n)*300);
+  let x=0;
+  while (x < W) {
+    x += waveLen * (0.7 + rng()*0.6);
+    const y = clampY(baseY + Math.sin(x/waveLen*Math.PI)*amp*(rng()*0.5+0.75));
+    pts.push({x,y});
+  }
+  pts.push({x:W, y:pts[pts.length-1].y});
+  return {pts, biome:'hills'};
+}
+
+function biomeMountain(n, rng, W, baseY) {
+  // Big uphill climbs then steep drops
+  const pts = [{x:0, y:baseY}];
+  let x=0, y=baseY;
+  const segs = 12 + Math.floor(n/5);
+  for (let i=0; i<segs; i++) {
+    x += 180 + rng()*250;
+    // Mostly uphill sections followed by sudden drops
+    const phase = i % 4;
+    if (phase < 3) y = clampY(y - (20 + rng() * 60 * diff(n)));
+    else           y = clampY(y + (60 + rng() * 120 * diff(n)));
+    pts.push({x,y});
+  }
+  pts.push({x:W, y:pts[pts.length-1].y});
+  return {pts, biome:'mountain'};
+}
+
+function biomeValley(n, rng, W, baseY) {
+  // Deep V-shaped valleys the car must descend and climb
+  const pts = [{x:0, y:baseY}];
+  let x=0;
+  const valleys = 2 + Math.floor(diff(n)*5);
+  const segW = W / (valleys*2+1);
+  for (let v=0; v<valleys; v++) {
+    // Descend
+    x += segW*(0.8+rng()*0.4);
+    pts.push({x, y: clampY(baseY + 100 + diff(n)*180)});
+    // Bottom
+    x += segW*(0.3+rng()*0.3);
+    pts.push({x, y: clampY(baseY + 140 + diff(n)*220)});
+    // Climb back
+    x += segW*(0.8+rng()*0.4);
+    pts.push({x, y: clampY(baseY - 20 - rng()*50*diff(n))});
+  }
+  pts.push({x:W, y:pts[pts.length-1].y});
+  return {pts, biome:'valley'};
+}
+
+function biomeSteps(n, rng, W, baseY) {
+  // Staircase steps — flat then sudden drop, flat, drop
+  const pts = [{x:0, y:baseY}];
+  let x=0, y=baseY;
+  const steps = 4 + Math.floor(diff(n)*10);
+  const stepW = W / (steps+1);
+  for (let i=0; i<steps; i++) {
+    const flatLen = stepW*(0.5+rng()*0.4);
+    pts.push({x: x+flatLen, y});
+    const drop = (rng()<0.6 ? 1 : -0.5) * (30 + diff(n)*100);
+    y = clampY(y + drop);
+    x += stepW;
+    pts.push({x, y});
+  }
+  pts.push({x:W, y:pts[pts.length-1].y});
+  return {pts, biome:'steps'};
+}
+
+function biomeJagged(n, rng, W, baseY) {
+  // Chaotic spiky terrain — sharp random ups and downs
+  const pts = [{x:0, y:baseY}];
+  let x=0, y=baseY;
+  const segs = 25 + Math.floor(diff(n)*30);
+  for (let i=0; i<segs; i++) {
+    x += 80 + rng()*150;
+    y = clampY(baseY + (rng()-0.5) * 2 * (80 + diff(n)*240));
+    pts.push({x,y});
+  }
+  pts.push({x:W, y:pts[pts.length-1].y});
+  return {pts, biome:'jagged'};
+}
+
+function biomeRamp(n, rng, W, baseY) {
+  // Long uphill ramp then cliff drop, repeat
+  const pts = [{x:0, y:baseY}];
+  let x=0, y=baseY;
+  const ramps = 2 + Math.floor(diff(n)*4);
+  const rampW = W / (ramps+1);
+  for (let i=0; i<ramps; i++) {
+    // Long climb
+    x += rampW*0.8;
+    y = clampY(y - (80 + diff(n)*150));
+    pts.push({x,y});
+    // Short cliff
+    x += rampW*0.2;
+    y = clampY(y + (100 + diff(n)*200));
+    pts.push({x, y: clampY(y + 10)});
+  }
+  pts.push({x:W, y:pts[pts.length-1].y});
+  return {pts, biome:'ramp'};
+}
+
+function biomeWaves(n, rng, W, baseY) {
+  // Rapid short waves — bumpy road, higher freq at harder levels
+  const pts = [{x:0, y:baseY}];
+  let x=0;
+  const freq = 100 + diff(n)*80;
+  const amp  = 20 + diff(n)*120;
+  while (x < W) {
+    x += freq*(0.6+rng()*0.8);
+    const y = clampY(baseY + Math.sin(x/180*Math.PI*(1+diff(n)*2))*amp + (rng()-0.5)*30*diff(n));
+    pts.push({x,y});
+  }
+  pts.push({x:W, y:pts[pts.length-1].y});
+  return {pts, biome:'waves'};
+}
+
+function biomeChaos(n, rng, W, baseY) {
+  // Mixed: random biome shape per segment, large swings
+  const pts = [{x:0, y:baseY}];
+  let x=0, y=baseY;
+  const segs = 18 + Math.floor(diff(n)*20);
+  let trend = 0;
+  for (let i=0; i<segs; i++) {
+    x += 120 + rng()*280;
+    trend += (rng()-0.48)*60;
+    trend = Math.max(-200, Math.min(200, trend));
+    y = clampY(baseY + trend * diff(n));
+    pts.push({x,y});
+  }
+  pts.push({x:W, y:pts[pts.length-1].y});
+  return {pts, biome:'chaos'};
+}
+
+function biomeAbyss(n, rng, W, baseY) {
+  // Extreme — nearly vertical drops, tiny platforms, max carnage
+  const pts = [{x:0, y:baseY}];
+  let x=0, y=baseY;
+  const segs = 20 + Math.floor(diff(n)*15);
+  for (let i=0; i<segs; i++) {
+    x += 60 + rng()*180;
+    const swing = 160 + diff(n)*200;
+    y = clampY(y + (rng()-0.45)*swing);
+    pts.push({x,y});
+    // Occasional tiny flat platform
+    if (rng()<0.25) { x += 60+rng()*80; pts.push({x,y}); }
+  }
+  pts.push({x:W, y:pts[pts.length-1].y});
+  return {pts, biome:'abyss'};
+}
+
+// ── MAIN LEVEL GENERATOR ─────────────────────────────────────────
+function genLevel(n) {
+  const rng = makeRng(n * 31 + 7);
+
+  // Physics scaling
+  const d = diff(n);
+  const gravity  = 0.42 + d * 0.18;
+  const friction  = Math.max(0.72, 0.92 - d * 0.12);
+  const fuelMax  = Math.max(55, 115 - d * 55);
+  const fuelDrain = 0.0006 + d * 0.0008;
+
+  // Track length grows with difficulty
+  const W = 2200 + n * 100;
+  const baseY = 480;
+
+  // Pick biome based on level — each group of 10 has a theme, with variation
+  const group = Math.floor((n-1)/10); // 0–9
+  const intraVariant = ((n-1) % 10); // 0–9 within group
+
+  // Biome rotation: each group of 10 levels emphasises a different style
+  // but mixes in variant flavours so no two levels feel identical
+  const biomeTable = [
+    // Group 0 (1-10):  tutorial flats → gentle hills
+    [biomeFlat, biomeFlat, biomeFlat, biomeHills, biomeFlat, biomeHills, biomeHills, biomeFlat, biomeHills, biomeHills],
+    // Group 1 (11-20): rolling hills + first valleys
+    [biomeHills, biomeHills, biomeValley, biomeHills, biomeValley, biomeHills, biomeWaves, biomeValley, biomeHills, biomeWaves],
+    // Group 2 (21-30): steps + small mountains
+    [biomeSteps, biomeHills, biomeSteps, biomeMountain, biomeSteps, biomeWaves, biomeMountain, biomeSteps, biomeValley, biomeMountain],
+    // Group 3 (31-40): mountains + ramps
+    [biomeMountain, biomeRamp, biomeMountain, biomeRamp, biomeSteps, biomeMountain, biomeRamp, biomeWaves, biomeMountain, biomeRamp],
+    // Group 4 (41-50): jagged + chaos
+    [biomeJagged, biomeRamp, biomeJagged, biomeChaos, biomeJagged, biomeRamp, biomeChaos, biomeJagged, biomeMountain, biomeChaos],
+    // Group 5 (51-60): chaos + abyss intro
+    [biomeChaos, biomeJagged, biomeChaos, biomeAbyss, biomeChaos, biomeJagged, biomeAbyss, biomeChaos, biomeRamp, biomeAbyss],
+    // Group 6 (61-70): abyss + extreme mountains
+    [biomeAbyss, biomeChaos, biomeAbyss, biomeMountain, biomeAbyss, biomeJagged, biomeAbyss, biomeChaos, biomeAbyss, biomeJagged],
+    // Group 7 (71-80): mixed hell
+    [biomeAbyss, biomeJagged, biomeChaos, biomeAbyss, biomeRamp, biomeAbyss, biomeJagged, biomeChaos, biomeAbyss, biomeJagged],
+    // Group 8 (81-90): near-max chaos
+    [biomeChaos, biomeAbyss, biomeJagged, biomeAbyss, biomeChaos, biomeAbyss, biomeJagged, biomeAbyss, biomeChaos, biomeAbyss],
+    // Group 9 (91-100): EXTREME — all abyss/chaos
+    [biomeAbyss, biomeChaos, biomeAbyss, biomeJagged, biomeAbyss, biomeChaos, biomeAbyss, biomeJagged, biomeAbyss, biomeAbyss],
+  ];
+
+  const biomeFn = biomeTable[Math.min(group,9)][intraVariant];
+  const {pts, biome} = biomeFn(n, rng, W, baseY);
+
+  // Smooth pts to remove extreme adjacent jumps on lower levels
+  const smoothPasses = Math.max(0, 3 - Math.floor(d*3));
+  for (let pass=0; pass<smoothPasses; pass++) {
+    for (let i=1; i<pts.length-1; i++) {
+      pts[i].y = (pts[i-1].y + pts[i].y*2 + pts[i+1].y) / 4;
+    }
+  }
+
+  // Obstacles — type and count vary by biome & level
+  const obs = [];
+  const baseObs = Math.max(0, Math.floor((n-4)/4));
+  const obsCount = Math.min(20, baseObs);
+  for (let i=0; i<obsCount; i++) {
+    const ox = 500 + rng()*(W-1000);
+    const typeRoll = rng();
+    let type;
+    if      (biome==='ramp'    && typeRoll<0.7) type='ramp';
+    else if (biome==='mountain'&& typeRoll<0.6) type='rock';
+    else if (biome==='jagged'  && typeRoll<0.5) type='spike';
+    else type = typeRoll<0.4 ? 'rock' : typeRoll<0.7 ? 'ramp' : 'spike';
+    obs.push({x:ox, type, size: 16 + rng()*28 + d*14});
+  }
+
+  // Fuel cans — more on hard levels to compensate for longer tracks
+  const fuels = [];
+  const fuelCount = Math.max(2, 2 + Math.floor(n/8));
+  for (let i=0; i<fuelCount; i++) {
+    fuels.push({x: 350 + rng()*(W-700), collected:false});
+  }
+
+  return { n, W, pts, obs, fuels, gravity, friction, fuelMax, fuelDrain, biome,
+    name: levelNames[Math.min(n-1, levelNames.length-1)] };
+}
+
+const levelNames = [
+  // 1-10: Tutorial flats
+  "Baby Bumps","Smooth Ride","Easy Street","Paved Paradise","Rolling Meadow",
+  "Gentle Giant","First Steps","Mellow Yellow","Lazy River","Cruisin'",
+  // 11-20: Hills & valleys
+  "Little Hills","Wavy Gravy","Valley View","Rolling Thunder","Dip & Dive",
+  "Twin Peaks","Ripple Road","Hillside Hustle","Undulating","Crumble Creek",
+  // 21-30: Steps & small mountains
+  "Step It Up","Stairway","Ledge Life","Rocky Ridge","Notch Road",
+  "Block Party","Terrace Run","Cliff Notes","Drop Zone","Stone Cold",
+  // 31-40: Mountains & ramps
+  "Alpine Start","Ramp It Up","Summit Push","Launch Pad","Iron Peak",
+  "Sky Ramp","Vertical Limit","Peak Freak","Over The Top","No Way Down",
+  // 41-50: Jagged & chaos begins
+  "Jagged Edge","Chaos Theory","Spiky Situation","Mad Max","Shatter Zone",
+  "Rough Patch","Frenzy Road","Danger Zone","Fury Road","The Abyss Begins",
+  // 51-60: Full chaos & abyss intro
+  "Chaos Canyon","Fracture Point","Void Glimpse","Tremor Zone","Dark Path",
+  "Shockwave","No Control","Broken Earth","Spiral Down","Edge of Reason",
+  // 61-70: Abyss & extreme mountains
+  "Into The Abyss","Hellscape","Demon's Gate","Titan's Fall","Oblivion",
+  "Nightmare Ridge","Doom Mountain","Skull Pass","Bone Crusher","Inferno",
+  // 71-80: Mixed hell
+  "Hell Track","Molten Road","Fire Pit","Lava Leap","Brimstone",
+  "Crimson Peak","Searing Pain","Scorched Earth","Blood Bath","Acid Drop",
+  // 81-90: Near-max chaos
+  "Soul Crusher","Necro Pass","Death Spiral","Shadow Realm","Void Runner",
+  "Dark Matter","Extinction","Singularity","Black Hole","No Mercy",
+  // 91-100: Extreme finale
+  "Last Stand","Omega Run","Final Descent","Alpha Strike","Annihilation",
+  "Beyond Limits","Madness Peak","Insanity Road","No Return","ULTIMATE CHAOS"
+];
+
+// ── Game state ──
+let gameRunning = false, currentLevelN = 1, levelData = null;
+let car = {}, camX = 0, camY = 0, gameTime = 0, timerInterval = null;
+let fuelPct = 1.0, dead = false, won = false;
+let particles = [], debris = [];
+let jumpPressed = false; // edge-detect jump so holding doesn't repeat
+
+const keys = {};
+document.addEventListener('keydown', e => {
+  keys[e.key] = true;
+  if (e.key === 'r' || e.key === 'R') restartLevel();
+  if (e.key === 'Escape') { if (gameRunning) { stopGame(); showLevelSelect(); } }
+  // Jump on Space or ArrowUp (edge only)
+  if ((e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') && !jumpPressed) {
+    jumpPressed = true;
+    tryJump();
+  }
+});
+document.addEventListener('keyup', e => {
+  keys[e.key] = false;
+  if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') jumpPressed = false;
+});
+
+// Touch
+function setupTouch() {
+  const map = { btnGas: ['ArrowRight','d'], btnBrake: ['ArrowDown','s'], btnLeft: ['ArrowLeft','a'] };
+  for (const [id, ks] of Object.entries(map)) {
+    const el = document.getElementById(id);
+    el.addEventListener('touchstart', e => { e.preventDefault(); ks.forEach(k => keys[k] = true); }, {passive:false});
+    el.addEventListener('touchend', e => { e.preventDefault(); ks.forEach(k => keys[k] = false); }, {passive:false});
+  }
+  // Jump button
+  const btnJump = document.getElementById('btnJump');
+  btnJump.addEventListener('touchstart', e => { e.preventDefault(); jumpPressed = false; tryJump(); }, {passive:false});
+}
+setupTouch();
+
+// ── Physics ──
+function initCar(level) {
+  const sp = level.pts[0];
+  car = {
+    x: sp.x + 80, y: sp.y - 60,
+    vx: 0, vy: 0,
+    angle: 0, angVel: 0,
+    w: 64, h: 32,
+    wheelRadius: 18,
+    onGround: false,
+    groundAngle: 0,
+    coyoteFrames: 0,   // frames since last left ground (for forgiving jump timing)
+  };
+}
+
+function tryJump() {
+  if (dead || won || !gameRunning) return;
+  // Allow jump if on ground OR within coyote window (8 frames)
+  if (car.onGround || car.coyoteFrames < 8) {
+    const jumpPower = 22;
+    car.vy = -jumpPower;
+    car.onGround = false;
+    car.coyoteFrames = 999; // consume coyote
+    // Jump dust particles
+    for (let i = 0; i < 10; i++) {
+      particles.push({
+        x: car.x + (Math.random()-0.5)*30,
+        y: car.y + car.wheelRadius + 4,
+        vx: (Math.random()-0.5)*4,
+        vy: Math.random()*2 + 1,
+        life: 1, size: 5 + Math.random()*5,
+        color: '#c8a96e'
+      });
+    }
+  }
+}
+
+function getTerrainY(level, worldX) {
+  const pts = level.pts;
+  for (let i = 0; i < pts.length - 1; i++) {
+    if (worldX >= pts[i].x && worldX <= pts[i+1].x) {
+      const t = (worldX - pts[i].x) / (pts[i+1].x - pts[i].x);
+      return pts[i].y + t * (pts[i+1].y - pts[i].y);
+    }
+  }
+  return pts[pts.length-1].y;
+}
+
+function getTerrainAngle(level, worldX) {
+  const dx = 4;
+  const y1 = getTerrainY(level, worldX - dx);
+  const y2 = getTerrainY(level, worldX + dx);
+  return Math.atan2(y2 - y1, dx * 2);
+}
+
+function updateCar(level, dt) {
+  if (dead || won) return;
+
+  const g = level.gravity;
+  const fr = level.friction;
+
+  // Input
+  const gasRight = keys['ArrowRight'] || keys['d'] || keys['D'];
+  const gasLeft  = keys['ArrowLeft']  || keys['a'] || keys['A'];
+  const brake    = keys['ArrowDown']  || keys['s'] || keys['S'];
+
+  // Coyote time tracking
+  if (car.onGround) car.coyoteFrames = 0;
+  else car.coyoteFrames = (car.coyoteFrames || 0) + 1;
+
+  // Fuel drain
+  if (gasRight) fuelPct -= (levelData.fuelDrain || 0.0008);
+  fuelPct = Math.max(0, fuelPct);
+  document.getElementById('fuel-bar').style.width = (fuelPct * 100) + '%';
+  if (fuelPct <= 0 && car.onGround) {
+    // can still roll
+  }
+
+  // Ground contact
+  const frontX = car.x + Math.cos(car.angle) * car.w * 0.45;
+  const backX  = car.x - Math.cos(car.angle) * car.w * 0.45;
+  const frontY = car.y + Math.sin(car.angle) * car.w * 0.45 + Math.cos(car.angle) * car.wheelRadius;
+  const backY  = car.y - Math.sin(car.angle) * car.w * 0.45 + Math.cos(car.angle) * car.wheelRadius;
+
+  const groundFront = getTerrainY(level, frontX);
+  const groundBack  = getTerrainY(level, backX);
+
+  const frontPen = frontY - groundFront;
+  const backPen  = backY  - groundBack;
+
+  car.onGround = frontPen >= -2 || backPen >= -2;
+
+  if (car.onGround) {
+    // push out
+    if (frontPen > 0) car.y -= frontPen * 0.6;
+    if (backPen > 0)  car.y -= backPen  * 0.6;
+    if (car.vy > 0) car.vy *= -0.25;
+
+    const ta = getTerrainAngle(level, car.x);
+    car.groundAngle = ta;
+
+    // Drive force — stronger, snappier acceleration
+    const driveForce = (fuelPct > 0 && gasRight) ? 1.4 : 0;
+    car.vx += Math.cos(ta) * driveForce;
+    if (brake) car.vx -= 0.7;
+
+    // More grip
+    car.vx *= Math.min(fr + 0.06, 0.94);
+    car.vy *= 0.6;
+
+    // Tilt — gentler so car doesn't over-rotate easily
+    if (gasLeft)  car.angVel -= 0.025;
+    if (gasRight) car.angVel += 0.008;
+
+    // Stronger ground-align snap
+    const angleDiff = ta - car.angle;
+    car.angVel += angleDiff * 0.14;
+    car.angVel *= 0.68;
+  } else {
+    // Air — gentler rotation, easier to correct
+    car.vy += g;
+    if (gasLeft)  car.angVel -= 0.035;
+    if (gasRight) car.angVel += 0.018;
+    car.angVel *= 0.92;
+  }
+
+  car.vx = Math.max(-20, Math.min(20, car.vx));
+  car.x += car.vx;
+  car.y += car.vy;
+  car.angle += car.angVel;
+
+  // Speed HUD
+  const spd = Math.abs(car.vx * 18) | 0;
+  document.getElementById('hudSpeed').textContent = spd + ' km/h';
+
+  // Particle trail
+  if (car.onGround && Math.abs(car.vx) > 3) {
+    particles.push({
+      x: car.x - Math.cos(car.angle) * 20, y: car.y + 20,
+      vx: -car.vx * 0.3 + (Math.random()-.5)*2,
+      vy: -(Math.random()*2),
+      life: 1, size: 4 + Math.random()*4,
+      color: `hsl(${20+Math.random()*20},60%,40%)`
+    });
+  }
+
+  // Flip detection
+  const absAngle = Math.abs(car.angle % (Math.PI * 2));
+  if ((absAngle > Math.PI * 0.65 && absAngle < Math.PI * 1.35) && car.onGround) {
+    triggerDeath('The truck flipped over!');
+    return;
+  }
+
+  // Out of bounds
+  if (car.y > 900) { triggerDeath('Fell into the void!'); return; }
+
+  // Fuel cans
+  level.fuels.forEach(f => {
+    if (!f.collected) {
+      const fy = getTerrainY(level, f.x) - 20;
+      const dx = car.x - f.x, dy = car.y - fy;
+      if (Math.sqrt(dx*dx+dy*dy) < 40) {
+        f.collected = true;
+        fuelPct = Math.min(1, fuelPct + 0.4);
+        spawnCollectParticles(f.x, fy, '#ffdd00');
+      }
+    }
+  });
+
+  // ── Obstacle collisions ──
+  level.obs.forEach(ob => {
+    const ty = getTerrainY(level, ob.x); // ground Y at obstacle
+
+    if (ob.type === 'rock') {
+      // Rock = solid AABB box sitting on terrain
+      const rLeft  = ob.x - ob.size / 2;
+      const rRight = ob.x + ob.size / 2;
+      const rTop   = ty - ob.size;
+      const rBot   = ty;
+      // Car circle approximation (radius = half-width)
+      const cr = car.w * 0.42;
+      // Closest point on rect to car center
+      const cx = Math.max(rLeft, Math.min(rRight, car.x));
+      const cy = Math.max(rTop,  Math.min(rBot,   car.y));
+      const dx = car.x - cx, dy = car.y - cy;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < cr) {
+        // Push car out
+        const overlap = cr - dist;
+        const nx = dist > 0.01 ? dx/dist : 0;
+        const ny = dist > 0.01 ? dy/dist : -1;
+        car.x += nx * overlap;
+        car.y += ny * overlap;
+        // Reflect velocity along normal with bounce damping
+        const dot = car.vx*nx + car.vy*ny;
+        car.vx -= 2 * dot * nx * 0.55;
+        car.vy -= 2 * dot * ny * 0.55;
+        // Angular kick
+        car.angVel += (car.vx > 0 ? 0.08 : -0.08);
+        // Debris particles
+        for (let i=0; i<6; i++) {
+          particles.push({
+            x: car.x, y: car.y,
+            vx: (Math.random()-0.5)*5, vy: -Math.random()*4,
+            life: 0.8, size: 3+Math.random()*4, color: '#888'
+          });
+        }
+      }
+    }
+
+    else if (ob.type === 'ramp') {
+      // Ramp = right-triangle: base at (ob.x-ob.size, ty) → (ob.x+ob.size, ty),
+      // peak at (ob.x+ob.size, ty-ob.size). Car launches if it hits the slope.
+      const rLeft  = ob.x - ob.size;
+      const rRight = ob.x + ob.size;
+      const rTop   = ty - ob.size;
+      // Only collide if car is in the X range and above the ramp base
+      if (car.x > rLeft - 10 && car.x < rRight + 10 && car.y > rTop - 10) {
+        // Interpolated Y of ramp surface at car X (slope goes from left-bottom to right-top)
+        const t = Math.max(0, Math.min(1, (car.x - rLeft) / (ob.size * 2)));
+        const rampY = ty - t * ob.size; // surface height at this X
+        const carBottom = car.y + car.wheelRadius;
+        if (carBottom > rampY && car.x > rLeft && car.x < rRight) {
+          // Push up onto ramp surface
+          car.y = rampY - car.wheelRadius;
+          if (car.vy > 0) {
+            // Launch! Give upward velocity based on ramp angle + speed
+            const rampAngle = Math.atan2(-ob.size, ob.size * 2);
+            const launchPower = Math.min(16, Math.abs(car.vx) * 0.8 + 5);
+            car.vy = -launchPower * Math.abs(Math.sin(rampAngle) + 0.5);
+            car.vx *= 1.08; // slight speed boost
+          }
+          car.onGround = true;
+          // Kick angular velocity for flip effect
+          car.angVel += 0.04;
+          // Launch particles
+          for (let i=0; i<5; i++) {
+            particles.push({
+              x: car.x, y: car.y + car.wheelRadius,
+              vx: (Math.random()-0.5)*3, vy: -Math.random()*3,
+              life: 0.7, size: 3+Math.random()*4, color: '#a0522d'
+            });
+          }
+        }
+      }
+    }
+
+    else if (ob.type === 'spike') {
+      // Spike = triangle pointing up; instant death on touch
+      const sLeft  = ob.x - ob.size / 2;
+      const sRight = ob.x + ob.size / 2;
+      const sTip   = ty - ob.size * 1.4;
+      const cr = car.w * 0.38;
+      // Simple circle vs triangle: check distance from tip and base corners
+      const points = [
+        {x: ob.x, y: sTip},
+        {x: sLeft, y: ty},
+        {x: sRight, y: ty},
+        {x: ob.x, y: ty - ob.size * 0.7}, // midpoint
+      ];
+      for (const p of points) {
+        const dx = car.x - p.x, dy = car.y - p.y;
+        if (Math.sqrt(dx*dx + dy*dy) < cr + 8) {
+          triggerDeath('Impaled on a spike!');
+          return;
+        }
+      }
+    }
+  });
+
+  // Flag check
+  const flagX = level.W - 100;
+  if (car.x >= flagX) { triggerWin(); }
+}
+
+function triggerDeath(reason) {
+  if (dead || won) return;
+  dead = true;
+  stopTimer();
+  document.getElementById('deathReason').textContent = reason;
+  // Explosion particles
+  for (let i = 0; i < 30; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const spd = 2 + Math.random() * 8;
+    particles.push({
+      x: car.x, y: car.y,
+      vx: Math.cos(a)*spd, vy: Math.sin(a)*spd - 4,
+      life: 1, size: 4 + Math.random()*8,
+      color: ['#ff4400','#ffaa00','#ff0000','#ffff00'][Math.floor(Math.random()*4)]
+    });
+  }
+  setTimeout(() => document.getElementById('deadOverlay').classList.remove('hidden'), 600);
+}
+
+function triggerWin() {
+  if (dead || won) return;
+  won = true;
+  stopTimer();
+  const elapsed = gameTime;
+  const stars = elapsed < 15 ? 3 : elapsed < 30 ? 2 : 1;
+  const prev = saveData.stars[currentLevelN] || 0;
+  if (stars > prev) saveData.stars[currentLevelN] = stars;
+  if (!saveData.unlocked || saveData.unlocked < currentLevelN + 1)
+    saveData.unlocked = Math.min(100, currentLevelN + 1);
+  save();
+
+  document.getElementById('winStars').textContent = '⭐'.repeat(stars) + '☆'.repeat(3-stars);
+  document.getElementById('winTime').textContent = 'Time: ' + elapsed + 's';
+  document.getElementById('btnNext').style.display = currentLevelN < 100 ? '' : 'none';
+
+  spawnCollectParticles(car.x, car.y, '#00ffcc');
+  setTimeout(() => document.getElementById('winOverlay').classList.remove('hidden'), 500);
+}
+
+function spawnCollectParticles(x, y, color) {
+  for (let i = 0; i < 12; i++) {
+    const a = Math.random() * Math.PI * 2;
+    particles.push({
+      x, y, vx: Math.cos(a)*4, vy: Math.sin(a)*4 - 3,
+      life: 1, size: 3 + Math.random()*5, color
+    });
+  }
+}
+
+// ── Camera ──
+function updateCamera() {
+  const tx = car.x - canvas.width * 0.35;
+  const ty = car.y - canvas.height * 0.5;
+  camX += (tx - camX) * 0.1;
+  camY += (ty - camY) * 0.1;
+  camY = Math.max(-200, camY);
+}
+
+// ── Draw ──
+function drawSky() {
+  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  const dayT = Math.min(1, currentLevelN / 60);
+  const r1 = Math.round(lerp(92, 10, dayT));
+  const g1 = Math.round(lerp(200, 5, dayT));
+  const b1 = Math.round(lerp(245, 30, dayT));
+  const r2 = Math.round(lerp(150, 26, dayT));
+  const g2 = Math.round(lerp(220, 0, dayT));
+  const b2 = Math.round(lerp(250, 50, dayT));
+  grad.addColorStop(0, `rgb(${r1},${g1},${b1})`);
+  grad.addColorStop(1, `rgb(${r2},${g2},${b2})`);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Sun or Moon
+  ctx.save();
+  ctx.translate(canvas.width * 0.8 - camX * 0.05, 80 - camY * 0.03);
+  if (currentLevelN < 50) {
+    ctx.fillStyle = '#ffe066';
+    ctx.shadowColor = '#ffdd00'; ctx.shadowBlur = 40;
+    ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI*2); ctx.fill();
+  } else {
+    ctx.fillStyle = '#ccd6f6';
+    ctx.shadowColor = '#aabbff'; ctx.shadowBlur = 30;
+    ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function drawTerrain(level) {
+  const pts = level.pts;
+  const groundColor = currentLevelN < 30 ? '#5a3a1a' :
+                      currentLevelN < 60 ? '#3a2a0a' : '#1a0a0a';
+  const grassColor  = currentLevelN < 30 ? '#4caf50' :
+                      currentLevelN < 60 ? '#8b6914' : '#cc2222';
+
+  ctx.save();
+  ctx.translate(-camX, -camY);
+
+  // Ground fill
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.lineTo(pts[pts.length-1].x, 1200);
+  ctx.lineTo(pts[0].x, 1200);
+  ctx.closePath();
+  ctx.fillStyle = groundColor;
+  ctx.fill();
+
+  // Grass stripe
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.strokeStyle = grassColor;
+  ctx.lineWidth = 8;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+
+  // Pixel stripe detail
+  ctx.strokeStyle = currentLevelN < 30 ? '#66cc66' : currentLevelN < 60 ? '#ccaa44' : '#ff4444';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([8, 8]);
+  ctx.lineDashOffset = (Date.now() * 0.05) % 16;
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Obstacles
+  level.obs.forEach(ob => {
+    const ty = getTerrainY(level, ob.x) - 2;
+    ctx.save();
+    ctx.translate(ob.x, ty);
+    if (ob.type === 'rock') {
+      ctx.fillStyle = '#666';
+      ctx.fillRect(-ob.size/2, -ob.size, ob.size, ob.size);
+      ctx.fillStyle = '#888';
+      ctx.fillRect(-ob.size/2+4, -ob.size, ob.size-8, ob.size*.4);
+    } else if (ob.type === 'spike') {
+      // Triangle spike
+      ctx.fillStyle = '#c0392b';
+      ctx.beginPath();
+      ctx.moveTo(-ob.size/2, 0); ctx.lineTo(ob.size/2, 0); ctx.lineTo(0, -ob.size*1.4);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#e74c3c';
+      ctx.beginPath();
+      ctx.moveTo(0, -ob.size*1.4); ctx.lineTo(ob.size/2, 0); ctx.lineTo(ob.size/4, -ob.size*0.6);
+      ctx.closePath(); ctx.fill();
+    } else {
+      // Ramp (triangle)
+      ctx.fillStyle = '#8b4513';
+      ctx.beginPath();
+      ctx.moveTo(-ob.size, 0); ctx.lineTo(ob.size, 0); ctx.lineTo(ob.size, -ob.size);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#a0522d';
+      ctx.beginPath();
+      ctx.moveTo(ob.size-6, -ob.size); ctx.lineTo(ob.size, -ob.size); ctx.lineTo(ob.size, -ob.size+6);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  });
+
+  // Fuel cans
+  level.fuels.forEach(f => {
+    if (f.collected) return;
+    const fy = getTerrainY(level, f.x) - 24;
+    const bob = Math.sin(Date.now() * 0.003 + f.x) * 4;
+    ctx.save();
+    ctx.translate(f.x, fy + bob);
+    ctx.fillStyle = '#ff4400';
+    ctx.fillRect(-10, -20, 20, 24);
+    ctx.fillStyle = '#ffaa00';
+    ctx.fillRect(-7, -28, 14, 10);
+    ctx.fillStyle = '#ffdd00';
+    ctx.font = '10px monospace'; ctx.textAlign = 'center';
+    ctx.fillText('⛽', 0, 6);
+    // Glow
+    ctx.shadowColor = '#ff8800'; ctx.shadowBlur = 16;
+    ctx.strokeStyle = '#ffaa00'; ctx.lineWidth = 2;
+    ctx.strokeRect(-10, -20, 20, 24);
+    ctx.restore();
+  });
+
+  // FLAG
+  const flagX = level.W - 100;
+  const flagY = getTerrainY(level, flagX) - 80;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(flagX, flagY, 4, 80);
+  ctx.fillStyle = '#000';
+  for (let r = 0; r < 4; r++)
+    for (let c = 0; c < 4; c++)
+      if ((r+c)%2===0) ctx.fillRect(flagX+4+c*8, flagY+r*8, 8, 8);
+      else { ctx.fillStyle='#fff'; ctx.fillRect(flagX+4+c*8, flagY+r*8, 8, 8); ctx.fillStyle='#000'; }
+
+  ctx.restore();
+}
+
+function drawCar() {
+  ctx.save();
+  ctx.translate(car.x - camX, car.y - camY);
+  ctx.rotate(car.angle);
+
+  const w = car.w, h = car.h;
+  const wr = car.wheelRadius;
+
+  // Suspension legs
+  ctx.strokeStyle = '#c0392b';
+  ctx.lineWidth = 8;
+  ctx.lineCap = 'square';
+  // Front
+  ctx.beginPath();
+  ctx.moveTo(w*0.35, h*0.3); ctx.lineTo(w*0.35, wr + 4);
+  ctx.stroke();
+  // Back
+  ctx.beginPath();
+  ctx.moveTo(-w*0.35, h*0.3); ctx.lineTo(-w*0.35, wr + 4);
+  ctx.stroke();
+
+  // Wheels
+  [w*0.38, -w*0.38].forEach(wx => {
+    ctx.save();
+    ctx.translate(wx, wr);
+    // Tire
+    ctx.fillStyle = '#222';
+    ctx.beginPath(); ctx.arc(0, 0, wr, 0, Math.PI*2); ctx.fill();
+    // Tread blocks
+    ctx.fillStyle = '#333';
+    for (let i = 0; i < 8; i++) {
+      ctx.save();
+      ctx.rotate(i * Math.PI/4 + (car.x * 0.05));
+      ctx.fillRect(-3, -wr, 6, 6);
+      ctx.restore();
+    }
+    // Rim
+    ctx.fillStyle = '#888';
+    ctx.beginPath(); ctx.arc(0, 0, wr*0.45, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#aaa';
+    for (let i = 0; i < 5; i++) {
+      ctx.save(); ctx.rotate(i * Math.PI*2/5);
+      ctx.fillRect(-2, -wr*0.42, 4, wr*0.42);
+      ctx.restore();
+    }
+    ctx.restore();
+  });
+
+  // Body
+  ctx.fillStyle = '#f5d800';
+  ctx.shadowColor = '#ffaa00'; ctx.shadowBlur = 8;
+  // Main body
+  ctx.beginPath();
+  ctx.moveTo(-w*0.5, -h*0.1);
+  ctx.lineTo(w*0.5, -h*0.1);
+  ctx.lineTo(w*0.5, h*0.3);
+  ctx.lineTo(-w*0.5, h*0.3);
+  ctx.closePath(); ctx.fill();
+
+  // Cab
+  ctx.beginPath();
+  ctx.moveTo(-w*0.3, -h*0.1);
+  ctx.lineTo(w*0.2, -h*0.1);
+  ctx.lineTo(w*0.2, -h*0.8);
+  ctx.lineTo(-w*0.1, -h*0.8);
+  ctx.lineTo(-w*0.3, -h*0.4);
+  ctx.closePath(); ctx.fill();
+
+  // Window
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#111';
+  ctx.beginPath();
+  ctx.moveTo(-w*0.08, -h*0.15);
+  ctx.lineTo(w*0.16, -h*0.15);
+  ctx.lineTo(w*0.16, -h*0.72);
+  ctx.lineTo(w*0.01, -h*0.72);
+  ctx.lineTo(-w*0.08, -h*0.45);
+  ctx.closePath(); ctx.fill();
+
+  // Headlight
+  ctx.fillStyle = '#ffffcc';
+  ctx.shadowColor = '#ffff88'; ctx.shadowBlur = 10;
+  ctx.fillRect(w*0.45, -h*0.05, 8, 8);
+  ctx.shadowBlur = 0;
+
+  // Stripe
+  ctx.fillStyle = '#c0392b';
+  ctx.fillRect(-w*0.5, h*0.05, w, 6);
+
+  ctx.restore();
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x - camX - p.size/2, p.y - camY - p.size/2, p.size, p.size);
+    ctx.restore();
+  });
+}
+
+function updateParticles() {
+  particles = particles.filter(p => {
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.15;
+    p.life -= 0.025;
+    p.size *= 0.97;
+    return p.life > 0;
+  });
+}
+
+// ── Timer ──
+function startTimer() {
+  gameTime = 0;
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    gameTime++;
+    document.getElementById('hudTime').textContent = gameTime;
+  }, 1000);
+}
+function stopTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+}
+
+// ── Game loop ──
+let animFrame = null;
+function gameLoop() {
+  if (!gameRunning) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawSky();
+  drawTerrain(levelData);
+  drawCar();
+  drawParticles();
+
+  if (!dead && !won) {
+    updateCar(levelData, 1/60);
+    updateCamera();
+    updateParticles();
+  } else {
+    updateParticles();
+  }
+
+  animFrame = requestAnimationFrame(gameLoop);
+}
+
+// ── Level management ──
+function buildLevel() {
+  levelData = genLevel(currentLevelN);
+  initCar(levelData);
+  camX = car.x - canvas.width * 0.35;
+  camY = car.y - canvas.height * 0.5;
+  particles = [];
+  fuelPct = 1.0;
+  dead = false; won = false;
+  document.getElementById('hudLevel').textContent = currentLevelN;
+  document.getElementById('hudBiome').textContent = (levelData.biome || '').toUpperCase();
+  document.getElementById('fuel-bar').style.width = '100%';
+  document.getElementById('winOverlay').classList.add('hidden');
+  document.getElementById('deadOverlay').classList.add('hidden');
+  startTimer();
+}
+
+function startLevel(n) {
+  currentLevelN = n;
+  gameRunning = true;
+  buildLevel();
+  document.getElementById('hud').classList.remove('hidden');
+  document.getElementById('controls-hint').classList.remove('hidden');
+  document.getElementById('titleScreen').classList.add('hidden');
+  document.getElementById('levelScreen').classList.add('hidden');
+  document.getElementById('gameCanvas').style.display = 'block';
+  if (animFrame) cancelAnimationFrame(animFrame);
+  gameLoop();
+}
+
+function stopGame() {
+  gameRunning = false;
+  stopTimer();
+  if (animFrame) cancelAnimationFrame(animFrame);
+  document.getElementById('hud').classList.add('hidden');
+  document.getElementById('controls-hint').classList.add('hidden');
+  document.getElementById('winOverlay').classList.add('hidden');
+  document.getElementById('deadOverlay').classList.add('hidden');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function restartLevel() {
+  document.getElementById('winOverlay').classList.add('hidden');
+  document.getElementById('deadOverlay').classList.add('hidden');
+  buildLevel();
+}
+
+function nextLevel() {
+  if (currentLevelN < 100) startLevel(currentLevelN + 1);
+}
+
+// ── Screen navigation ──
+function showTitle() {
+  stopGame();
+  document.getElementById('titleScreen').classList.remove('hidden');
+  document.getElementById('levelScreen').classList.add('hidden');
+}
+
+function showLevelSelect() {
+  stopGame();
+  document.getElementById('titleScreen').classList.add('hidden');
+  document.getElementById('levelScreen').classList.remove('hidden');
+  renderLevelGrid();
+}
+
+function renderLevelGrid() {
+  const grid = document.getElementById('levelGrid');
+  grid.innerHTML = '';
+  const unlocked = saveData.unlocked || 1;
+  for (let i = 1; i <= 100; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'level-btn';
+    const stars = saveData.stars[i] || 0;
+    if (stars > 0) btn.classList.add('completed');
+    else if (i <= unlocked) btn.classList.add('unlocked');
+
+    btn.innerHTML = `<span>${i}</span><span class="star-row">${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</span>`;
+
+    if (i <= unlocked || stars > 0) {
+      btn.onclick = () => startLevel(i);
+    } else {
+      btn.title = 'Locked';
+      btn.style.cursor = 'not-allowed';
+    }
+    grid.appendChild(btn);
+  }
+}
+
+function showHowTo() {
+  document.getElementById('howToOverlay').classList.remove('hidden');
+}
+
+// Init
+showTitle();
+</script>
+</body>
+</html>

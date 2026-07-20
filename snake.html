@@ -1,1524 +1,684 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Snake Game</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<title>Snake</title>
 <style>
-  :root {
-    --bg: #0f1a0f;
-    --grid: #1a2e1a;
-    --snake-head: #00ffcc;
-    --snake-body: #00cc99;
-    --snake-tail: #007a5c;
-    --food: #a0522d;
-    --food-glow: #a0522d88;
-    --accent: #f5e642;
-    --accent2: #ffffff;
-    --text: #f0f0e0;
-    --muted: #5a6e3a;
-    --border: #2a4a2a;
-    --score-bg: #0d1a0d;
-    --grid-line: #1e3a1e;
-  }
-
-- { margin: 0; padding: 0; box-sizing: border-box; }
-
-body {
-background: var(–bg);
-color: var(–text);
-font-family: ‘Space Mono’, monospace;
-min-height: 100vh;
-display: flex;
-flex-direction: column;
-align-items: center;
-justify-content: center;
-overflow: hidden;
-position: relative;
-}
-
-/* Animated background grid */
-body::before {
-content: ‘’;
-position: fixed;
-inset: 0;
-background-image:
-linear-gradient(var(–grid-line) 1px, transparent 1px),
-linear-gradient(90deg, var(–grid-line) 1px, transparent 1px);
-background-size: 40px 40px;
-animation: gridPulse 8s ease-in-out infinite;
-pointer-events: none;
-z-index: 0;
-}
-
-@keyframes gridPulse {
-0%, 100% { opacity: 0.4; }
-50% { opacity: 0.8; }
-}
-
-/* Radial ambient glow */
-body::after {
-content: ‘’;
-position: fixed;
-width: 600px;
-height: 600px;
-border-radius: 50%;
-background: radial-gradient(circle, #00ffcc08 0%, transparent 70%);
-top: 50%; left: 50%;
-transform: translate(-50%, -50%);
-pointer-events: none;
-z-index: 0;
-animation: ambientPulse 4s ease-in-out infinite;
-}
-
-@keyframes ambientPulse {
-0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-50% { transform: translate(-50%, -50%) scale(1.15); opacity: 0.6; }
-}
-
-.wrapper {
-position: relative;
-z-index: 1;
-display: flex;
-flex-direction: column;
-align-items: center;
-gap: 20px;
-}
-
-/* HEADER */
-header {
-display: flex;
-align-items: center;
-justify-content: space-between;
-width: 100%;
-max-width: 480px;
-padding: 0 4px;
-}
-
-.logo {
-font-family: ‘Bebas Neue’, sans-serif;
-font-size: 42px;
-letter-spacing: 6px;
-color: var(–accent);
-text-shadow: 0 0 20px var(–accent), 0 0 40px var(–accent);
-line-height: 1;
-}
-
-.logo span {
-color: var(–accent2);
-text-shadow: 0 0 20px var(–accent2), 0 0 40px var(–accent2);
-}
-
-/* SCORES */
-.score-panel {
-display: flex;
-flex-direction: column;
-align-items: flex-end;
-gap: 2px;
-}
-
-.score-label {
-font-size: 9px;
-letter-spacing: 3px;
-color: var(–muted);
-text-transform: uppercase;
-}
-
-.score-value {
-font-family: ‘Bebas Neue’, sans-serif;
-font-size: 32px;
-letter-spacing: 2px;
-color: var(–text);
-line-height: 1;
-transition: color 0.1s;
-}
-
-.score-value.bump {
-color: var(–accent);
-text-shadow: 0 0 12px var(–accent);
-}
-
-/* LEVEL BAR */
-.meta-row {
-display: flex;
-justify-content: space-between;
-align-items: center;
-width: 100%;
-max-width: 480px;
-padding: 0 4px;
-}
-
-.level-badge {
-font-size: 10px;
-letter-spacing: 3px;
-color: var(–accent);
-text-transform: uppercase;
-border: 1px solid var(–accent);
-padding: 3px 10px;
-position: relative;
-overflow: hidden;
-}
-
-.level-badge::before {
-content: ‘’;
-position: absolute;
-inset: 0;
-background: var(–accent);
-opacity: 0.07;
-}
-
-.speed-bar-wrap {
-display: flex;
-align-items: center;
-gap: 8px;
-}
-
-.speed-label {
-font-size: 9px;
-letter-spacing: 2px;
-color: var(–muted);
-}
-
-.speed-dots {
-display: flex;
-gap: 4px;
-}
-
-.dot {
-width: 6px; height: 6px;
-border-radius: 50%;
-background: var(–border);
-transition: background 0.3s, box-shadow 0.3s;
-}
-
-.dot.active {
-background: var(–accent2);
-box-shadow: 0 0 6px var(–accent2);
-}
-
-/* GAME CANVAS WRAPPER */
-.canvas-wrap {
-position: relative;
-border: 1px solid var(–border);
-box-shadow:
-0 0 0 1px #ffffff05,
-0 0 40px #00ffcc18,
-0 0 80px #00ffcc08,
-inset 0 0 60px #00000060;
-}
-
-.canvas-wrap::before,
-.canvas-wrap::after {
-content: ‘’;
-position: absolute;
-width: 8px; height: 8px;
-border-color: var(–accent);
-border-style: solid;
-}
-
-.canvas-wrap::before {
-top: -1px; left: -1px;
-border-width: 2px 0 0 2px;
-}
-
-.canvas-wrap::after {
-bottom: -1px; right: -1px;
-border-width: 0 2px 2px 0;
-}
-
-canvas {
-display: block;
-}
-
-/* OVERLAY SCREENS */
-.overlay {
-position: absolute;
-inset: 0;
-display: flex;
-flex-direction: column;
-align-items: center;
-justify-content: center;
-gap: 16px;
-background: #0a0a0fcc;
-backdrop-filter: blur(4px);
-z-index: 10;
-transition: opacity 0.3s;
-}
-
-.overlay.hidden { opacity: 0; pointer-events: none; }
-
-.overlay-title {
-font-family: ‘Bebas Neue’, sans-serif;
-font-size: 52px;
-letter-spacing: 8px;
-text-align: center;
-line-height: 1;
-}
-
-.overlay-title.green {
-color: var(–accent);
-text-shadow: 0 0 30px var(–accent), 0 0 60px var(–accent);
-}
-
-.overlay-title.red {
-color: var(–accent2);
-text-shadow: 0 0 30px var(–accent2), 0 0 60px var(–accent2);
-}
-
-.overlay-sub {
-font-size: 10px;
-letter-spacing: 4px;
-color: var(–muted);
-text-align: center;
-line-height: 2;
-}
-
-.final-score {
-font-family: ‘Bebas Neue’, sans-serif;
-font-size: 72px;
-color: var(–text);
-letter-spacing: 4px;
-line-height: 1;
-}
-
-.btn {
-font-family: ‘Space Mono’, monospace;
-font-size: 11px;
-letter-spacing: 4px;
-color: var(–bg);
-background: var(–accent);
-border: none;
-padding: 14px 36px;
-cursor: pointer;
-text-transform: uppercase;
-position: relative;
-overflow: hidden;
-transition: transform 0.1s, box-shadow 0.2s;
-box-shadow: 0 0 20px var(–accent), 0 0 40px #00ffcc40;
-margin-top: 8px;
-}
-
-.btn:hover {
-transform: translateY(-2px);
-box-shadow: 0 0 30px var(–accent), 0 0 60px #00ffcc60;
-}
-
-.btn:active { transform: translateY(0); }
-
-.btn::after {
-content: ‘’;
-position: absolute;
-top: 0; left: -100%;
-width: 60%; height: 100%;
-background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-transition: left 0.4s;
-}
-
-.btn:hover::after { left: 150%; }
-
-/* CONTROLS hint */
-.controls {
-display: flex;
-gap: 24px;
-align-items: center;
-}
-
-.ctrl-group {
-display: flex;
-flex-direction: column;
-align-items: center;
-gap: 4px;
-}
-
-.ctrl-label {
-font-size: 8px;
-letter-spacing: 2px;
-color: var(–muted);
-}
-
-.key-row {
-display: flex;
-gap: 3px;
-}
-
-.key {
-width: 22px; height: 22px;
-border: 1px solid var(–border);
-display: flex;
-align-items: center;
-justify-content: center;
-font-size: 9px;
-color: var(–muted);
-background: #0f0f1a;
-}
-
-/* FOOTER */
-footer {
-display: flex;
-justify-content: space-between;
-width: 100%;
-max-width: 480px;
-padding: 0 4px;
-}
-
-.hint {
-font-size: 9px;
-letter-spacing: 2px;
-color: var(–muted);
-text-transform: uppercase;
-}
-
-.hint span {
-color: var(–accent);
-}
-
-/* Particle canvas */
-#particles {
-position: fixed;
-inset: 0;
-pointer-events: none;
-z-index: 0;
-}
-
-/* SHOP BUTTON */
-.shop-btn {
-font-family: ‘Space Mono’, monospace;
-font-size: 10px;
-letter-spacing: 3px;
-color: var(–accent);
-background: transparent;
-border: 1px solid var(–accent);
-padding: 6px 16px;
-cursor: pointer;
-text-transform: uppercase;
-transition: background 0.2s, color 0.2s, box-shadow 0.2s;
-position: relative;
-overflow: hidden;
-}
-.shop-btn:hover {
-background: var(–accent);
-color: #0f1a0f;
-box-shadow: 0 0 16px var(–accent);
-}
-
-/* SHOP MODAL */
-.shop-modal {
-position: fixed;
-inset: 0;
-background: rgba(5,12,5,0.92);
-backdrop-filter: blur(8px);
-z-index: 200;
-display: flex;
-align-items: center;
-justify-content: center;
-opacity: 1;
-transition: opacity 0.25s;
-}
-.shop-modal.hidden { opacity: 0; pointer-events: none; }
-
-.shop-panel {
-background: #0d1a0d;
-border: 1px solid #2a4a2a;
-width: 540px;
-max-width: 96vw;
-max-height: 88vh;
-overflow-y: auto;
-padding: 28px;
-position: relative;
-box-shadow: 0 0 60px rgba(0,0,0,0.8);
-}
-
-.shop-panel::-webkit-scrollbar { width: 4px; }
-.shop-panel::-webkit-scrollbar-track { background: #0d1a0d; }
-.shop-panel::-webkit-scrollbar-thumb { background: #2a4a2a; }
-
-.shop-header {
-display: flex;
-justify-content: space-between;
-align-items: center;
-margin-bottom: 24px;
-border-bottom: 1px solid #2a4a2a;
-padding-bottom: 16px;
-}
-
-.shop-title {
-font-family: ‘Bebas Neue’, sans-serif;
-font-size: 36px;
-letter-spacing: 6px;
-color: var(–accent);
-text-shadow: 0 0 16px var(–accent);
-}
-
-.shop-close {
-font-size: 20px;
-color: var(–muted);
-cursor: pointer;
-background: none;
-border: none;
-line-height: 1;
-transition: color 0.2s;
-}
-.shop-close:hover { color: var(–text); }
-
-.shop-subtitle {
-font-size: 9px;
-letter-spacing: 3px;
-color: var(–muted);
-margin-bottom: 20px;
-text-transform: uppercase;
-}
-
-.skins-grid {
-display: grid;
-grid-template-columns: repeat(2, 1fr);
-gap: 14px;
-}
-
-.skin-card {
-border: 1px solid #2a4a2a;
-padding: 14px;
-display: flex;
-align-items: center;
-gap: 14px;
-cursor: pointer;
-transition: border-color 0.2s, background 0.2s;
-position: relative;
-overflow: hidden;
-}
-
-.skin-card.locked { opacity: 0.5; cursor: default; }
-.skin-card.active { border-color: var(–accent); background: rgba(245,230,66,0.06); }
-.skin-card:not(.locked):not(.active):hover { border-color: #4a7a4a; background: rgba(255,255,255,0.03); }
-
-.skin-preview {
-flex-shrink: 0;
-}
-
-.skin-info { flex: 1; min-width: 0; }
-
-.skin-name {
-font-family: ‘Bebas Neue’, sans-serif;
-font-size: 18px;
-letter-spacing: 2px;
-color: var(–text);
-line-height: 1.1;
-}
-
-.skin-desc {
-font-size: 8px;
-letter-spacing: 1px;
-color: var(–muted);
-margin-top: 3px;
-text-transform: uppercase;
-}
-
-.skin-unlock {
-font-size: 8px;
-letter-spacing: 2px;
-margin-top: 6px;
-text-transform: uppercase;
-}
-.skin-unlock.unlocked { color: #5adf5a; }
-.skin-unlock.locked-txt { color: var(–muted); }
-
-.skin-badge {
-position: absolute;
-top: 8px; right: 8px;
-font-size: 7px;
-letter-spacing: 2px;
-padding: 2px 6px;
-text-transform: uppercase;
-}
-.skin-badge.equipped { background: var(–accent); color: #0f1a0f; }
-.skin-badge.new-badge { background: #5adf5a; color: #0a1a0a; }
-
-/* UNLOCK TOAST */
-.unlock-toast {
-position: fixed;
-bottom: 30px;
-left: 50%;
-transform: translateX(-50%) translateY(80px);
-background: #0d1a0d;
-border: 1px solid var(–accent);
-padding: 12px 24px;
-font-size: 10px;
-letter-spacing: 3px;
-color: var(–accent);
-text-transform: uppercase;
-z-index: 300;
-transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.4s;
-opacity: 0;
-white-space: nowrap;
-box-shadow: 0 0 20px rgba(245,230,66,0.3);
-}
-.unlock-toast.show {
-transform: translateX(-50%) translateY(0);
-opacity: 1;
-}
-
-/* Scanline effect */
-.scanlines {
-position: fixed;
-inset: 0;
-background: repeating-linear-gradient(
-to bottom,
-transparent 0px,
-transparent 2px,
-rgba(0,0,0,0.03) 2px,
-rgba(0,0,0,0.03) 4px
-);
-pointer-events: none;
-z-index: 99;
-}
+  :root {
+    --bg: #0f1a14;
+    --board: #16261c;
+    --grid: #1e3327;
+    --snake: #6ee7a0;
+    --snake-head: #a3f7c0;
+    --food: #ff6b5e;
+    --text: #eafff0;
+    --accent: #6ee7a0;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Courier New', monospace;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 20px;
+  }
+  h1 {
+    margin: 0;
+    letter-spacing: 6px;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+  .hud {
+    display: flex;
+    gap: 24px;
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: #9fd9b4;
+  }
+  .hud span b { color: var(--text); }
+  .topbar {
+    position: relative;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+  #shopBtn {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--grid);
+    border: 1px solid #2a4a37;
+    color: var(--text);
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #shopBtn .dot {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 10px;
+    height: 10px;
+    background: var(--food);
+    border-radius: 50%;
+    display: none;
+  }
+  #board {
+    background: var(--board);
+    border: 3px solid var(--grid);
+    border-radius: 8px;
+    image-rendering: pixelated;
+    box-shadow: 0 0 40px rgba(110,231,160,0.08);
+  }
+  .msg {
+    min-height: 20px;
+    font-size: 13px;
+    color: #9fd9b4;
+    letter-spacing: 1px;
+    text-align: center;
+  }
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(3, 44px);
+    grid-template-rows: repeat(2, 44px);
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .controls button {
+    background: var(--grid);
+    border: 1px solid #2a4a37;
+    color: var(--text);
+    border-radius: 6px;
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .controls button:active { background: var(--accent); color: #0f1a14; }
+  #up { grid-column: 2; grid-row: 1; }
+  #left { grid-column: 1; grid-row: 2; }
+  #down { grid-column: 2; grid-row: 2; }
+  #right { grid-column: 3; grid-row: 2; }
+  button.restart {
+    margin-top: 4px;
+    background: var(--accent);
+    color: #0f1a14;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    cursor: pointer;
+    font-family: inherit;
+    display: none;
+  }
+  @media (hover:hover) {
+    .controls { display: none; }
+  }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(6, 12, 8, 0.82);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    padding: 20px;
+  }
+  .overlay.open { display: flex; }
+  .start-panel {
+    background: var(--board);
+    border: 2px solid var(--grid);
+    border-radius: 12px;
+    padding: 28px 24px;
+    width: 100%;
+    max-width: 320px;
+    text-align: center;
+  }
+  .start-panel h2 {
+    margin: 0 0 8px;
+    font-size: 18px;
+    letter-spacing: 3px;
+    color: var(--accent);
+  }
+  .start-panel p {
+    margin: 0 0 20px;
+    font-size: 12px;
+    color: #9fd9b4;
+    letter-spacing: 1px;
+    line-height: 1.6;
+  }
+  .start-btn {
+    background: var(--accent);
+    color: #0f1a14;
+    border: none;
+    padding: 12px 32px;
+    border-radius: 24px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+  }
+  .shop {
+    background: var(--board);
+    border: 2px solid var(--grid);
+    border-radius: 12px;
+    padding: 20px;
+    width: 100%;
+    max-width: 380px;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .shop h2 {
+    margin: 0 0 4px;
+    font-size: 16px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-align: center;
+  }
+  .shop .sub {
+    text-align: center;
+    font-size: 11px;
+    color: #9fd9b4;
+    margin-bottom: 16px;
+    letter-spacing: 1px;
+  }
+  .skin-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .skin-card {
+    background: var(--grid);
+    border: 2px solid #2a4a37;
+    border-radius: 10px;
+    padding: 10px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    position: relative;
+  }
+  .skin-card.selected { border-color: var(--accent); box-shadow: 0 0 12px rgba(110,231,160,0.3); }
+  .skin-card.locked { opacity: 0.45; cursor: default; }
+  .skin-swatch {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: block;
+  }
+  .skin-name {
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-align: center;
+    color: var(--text);
+  }
+  .skin-req {
+    font-size: 9px;
+    color: #6f9c81;
+  }
+  .shop-close {
+    margin: 16px auto 0;
+    display: block;
+    background: var(--accent);
+    color: #0f1a14;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    cursor: pointer;
+    font-family: inherit;
+  }
 </style>
-
 </head>
 <body>
-
-<canvas id="particles"></canvas>
-
-<div class="scanlines"></div>
-
-<div class="wrapper">
-  <header>
-    <div class="logo">SNAKE <span>G</span>AME</div>
-    <div class="score-panel">
-      <div class="score-label">score</div>
-      <div class="score-value" id="scoreDisplay">0</div>
-    </div>
-  </header>
-
-  <div class="meta-row">
-    <div class="level-badge" id="levelBadge">LEVEL 01</div>
-    <div class="speed-bar-wrap">
-      <div class="speed-label">SPEED</div>
-      <div class="speed-dots" id="speedDots">
-        <div class="dot active"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="canvas-wrap">
-    <canvas id="gameCanvas" width="480" height="480"></canvas>
-
-```
-<!-- Start screen -->
-<div class="overlay" id="startScreen">
-  <div class="overlay-title green">SNAKE GAME</div>
-  <div class="overlay-sub">CONSUME. GROW. SURVIVE.<br>USE ARROWS OR WASD TO MOVE</div>
-  <div class="controls">
-    <div class="ctrl-group">
-      <div class="key-row"><div class="key">W</div></div>
-      <div class="key-row">
-        <div class="key">A</div>
-        <div class="key">S</div>
-        <div class="key">D</div>
-      </div>
-      <div class="ctrl-label">WASD</div>
-    </div>
-    <div class="ctrl-group">
-      <div class="key-row"><div class="key">↑</div></div>
-      <div class="key-row">
-        <div class="key">←</div>
-        <div class="key">↓</div>
-        <div class="key">→</div>
-      </div>
-      <div class="ctrl-label">ARROWS</div>
-    </div>
-  </div>
-  <button class="btn" onclick="startGame()">PLAY NOW</button>
+<div class="wrap">
+  <div class="topbar">
+    <h1>Snake</h1>
+    <button id="shopBtn" title="Skin shop">&#128717;<span class="dot" id="shopDot"></span></button>
+  </div>
+  <div class="hud">
+    <span>SCORE <b id="score">0</b></span>
+    <span>BEST <b id="best">0</b></span>
+  </div>
+  <canvas id="board" width="400" height="400"></canvas>
+  <div class="msg" id="msg">Use arrow keys / WASD to move</div>
+  <button class="restart" id="restart">PLAY AGAIN</button>
+  <div class="controls">
+    <button id="up">&#8593;</button>
+    <button id="left">&#8592;</button>
+    <button id="down">&#8595;</button>
+    <button id="right">&#8594;</button>
+  </div>
 </div>
 
-<!-- Game over screen -->
-<div class="overlay hidden" id="gameOverScreen">
-  <div class="overlay-title red">GAME OVER</div>
-  <div class="overlay-sub">FINAL SCORE</div>
-  <div class="final-score" id="finalScore">0</div>
-  <div class="overlay-sub" id="newHighMsg" style="color: var(--accent); display:none;">✦ NEW HIGH SCORE ✦</div>
-  <button class="btn" onclick="startGame()">PLAY AGAIN</button>
-</div>
-```
-
-  </div>
-
-  <footer>
-    <div class="hint">P — <span>PAUSE</span></div>
-    <div class="hint">HIGH SCORE: <span id="highScoreDisplay">0</span></div>
-    <button class="shop-btn" onclick="openShop()">🏪 SHOP</button>
-  </footer>
+<div class="overlay open" id="startOverlay">
+  <div class="start-panel">
+    <h2>SNAKE</h2>
+    <p>Arrow keys / WASD to move.<br>Eat food, grow long, unlock skins.</p>
+    <button class="start-btn" id="startBtn">START</button>
+  </div>
 </div>
 
-<!-- SHOP MODAL -->
-
-<div class="shop-modal hidden" id="shopModal">
-  <div class="shop-panel">
-    <div class="shop-header">
-      <div class="shop-title">SKIN SHOP</div>
-      <button class="shop-close" onclick="closeShop()">✕</button>
-    </div>
-    <div class="shop-subtitle">Unlock new skins every 10 points · Click to equip</div>
-    <div class="skins-grid" id="skinsGrid"></div>
-  </div>
+<div class="overlay" id="overlay">
+  <div class="shop">
+    <h2>SKIN SHOP</h2>
+    <div class="sub">Unlock a new skin every 10 points on your best score</div>
+    <div class="skin-grid" id="skinGrid"></div>
+    <button class="shop-close" id="shopClose">CLOSE</button>
+  </div>
 </div>
-
-<!-- UNLOCK TOAST -->
-
-<div class="unlock-toast" id="unlockToast"></div>
 
 <script>
-// =====================
-//  PARTICLE BACKGROUND
-// =====================
-(function() {
-  const pc = document.getElementById('particles');
-  const ctx = pc.getContext('2d');
-  let W, H, particles = [];
+const canvas = document.getElementById('board');
+const ctx = canvas.getContext('2d');
+const cell = 20;
+const cols = canvas.width / cell;
+const rows = canvas.height / cell;
 
-  function resize() {
-    W = pc.width = window.innerWidth;
-    H = pc.height = window.innerHeight;
-  }
-  resize();
-  window.addEventListener('resize', resize);
+let snake, dir, nextDir, food, score, best, running, speed, timer;
 
-  for (let i = 0; i < 60; i++) {
-    particles.push({
-      x: Math.random() * 2000,
-      y: Math.random() * 2000,
-      r: Math.random() * 1.5 + 0.3,
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: (Math.random() - 0.5) * 0.3,
-      a: Math.random(),
-      color: Math.random() > 0.5 ? '#00ffcc' : '#ff3c6e'
-    });
-  }
+// ---- persistence helpers ----
+function lsGet(key) {
+  try { return localStorage.getItem(key); } catch(e) { return null; }
+}
+function lsSet(key, v) {
+  try { localStorage.setItem(key, v); } catch(e) {}
+}
 
-  function animParticles() {
-    ctx.clearRect(0, 0, W, H);
-    for (const p of particles) {
-      p.x += p.vx; p.y += p.vy;
-      p.a += 0.005;
-      if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
-      if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
-      ctx.beginPath();
-      ctx.arc(p.x % W, p.y % H, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = p.color + Math.floor(Math.abs(Math.sin(p.a)) * 120 + 20).toString(16).padStart(2,'0');
-      ctx.fill();
-    }
-    requestAnimationFrame(animParticles);
-  }
-  animParticles();
-})();
-
-// =====================
-//  SKIN SYSTEM
-// =====================
+// ---- skins ----
 const SKINS = [
-  {
-    id: 'classic',
-    name: 'Classic',
-    desc: 'The original neon serpent',
-    unlockAt: 0,
-    head: '#00ffcc', body: (t) => { const f=1-t*0.65; return `rgb(0,${Math.floor(204*f)},${Math.floor(153*f)})`; },
-    glow: '#00ffcc', eyeColor: '#0a0a0f'
-  },
-  {
-    id: 'fire',
-    name: 'Fireball',
-    desc: 'Blazing hot trails',
-    unlockAt: 10,
-    head: '#ff6a00', body: (t) => { const f=1-t*0.6; return `rgb(${Math.floor(255*f)},${Math.floor(80*f)},0)`; },
-    glow: '#ff4400', eyeColor: '#1a0000'
-  },
-  {
-    id: 'royal',
-    name: 'Royal',
-    desc: 'Purple reign forever',
-    unlockAt: 20,
-    head: '#cc44ff', body: (t) => { const f=1-t*0.6; return `rgb(${Math.floor(160*f)},${Math.floor(30*f)},${Math.floor(255*f)})`; },
-    glow: '#aa00ff', eyeColor: '#100020'
-  },
-  {
-    id: 'gold',
-    name: 'Gold Rush',
-    desc: 'All that glitters',
-    unlockAt: 30,
-    head: '#ffd700', body: (t) => { const f=1-t*0.55; return `rgb(${Math.floor(255*f)},${Math.floor(185*f)},0)`; },
-    glow: '#ffaa00', eyeColor: '#1a1000'
-  },
-  {
-    id: 'ice',
-    name: 'Blizzard',
-    desc: 'Frozen to the core',
-    unlockAt: 40,
-    head: '#aaf0ff', body: (t) => { const f=1-t*0.5; return `rgb(${Math.floor(100*f)},${Math.floor(220*f)},${Math.floor(255*f)})`; },
-    glow: '#00ddff', eyeColor: '#001520'
-  },
-  {
-    id: 'toxic',
-    name: 'Toxic',
-    desc: 'Radioactive vibes',
-    unlockAt: 50,
-    head: '#aaff00', body: (t) => { const f=1-t*0.6; return `rgb(${Math.floor(120*f)},${Math.floor(255*f)},0)`; },
-    glow: '#88ff00', eyeColor: '#0a1500'
-  },
-  {
-    id: 'candy',
-    name: 'Candy',
-    desc: 'Sweet & deadly',
-    unlockAt: 60,
-    head: '#ff69b4', body: (t) => { const f=1-t*0.5; return `rgb(${Math.floor(255*f)},${Math.floor(80*f)},${Math.floor(160*f)})`; },
-    glow: '#ff1493', eyeColor: '#1a0010'
-  },
-  {
-    id: 'galaxy',
-    name: 'Galaxy',
-    desc: 'Born in the cosmos',
-    unlockAt: 70,
-    head: '#e0b0ff', body: (t) => {
-      const hue = 260 + t * 60;
-      const l = Math.floor(70 - t * 30);
-      return `hsl(${hue},80%,${l}%)`;
-    },
-    glow: '#c080ff', eyeColor: '#0a0010'
-  },
-  {
-    id: 'lava',
-    name: 'Lava',
-    desc: 'Straight from the core',
-    unlockAt: 80,
-    head: '#ff4500', body: (t) => {
-      const r = Math.floor(255 * (1 - t*0.4));
-      const g = Math.floor(60 * (1 - t*0.8));
-      return `rgb(${r},${g},0)`;
-    },
-    glow: '#ff2200', eyeColor: '#1a0000'
-  },
-  {
-    id: 'diamond',
-    name: 'Diamond',
-    desc: '100 pts · Legend status',
-    unlockAt: 100,
-    head: '#ffffff', body: (t) => {
-      const f = 1 - t*0.4;
-      return `rgb(${Math.floor(200*f)},${Math.floor(230*f)},${Math.floor(255*f)})`;
-    },
-    glow: '#88ccff', eyeColor: '#001030'
-  }
+  { id: 'classic',  name: 'Classic',   req: 0,  pattern: 'solid',   head: '#a3f7c0', base: '#6ee7a0', accent: '#4fc783' },
+  { id: 'candy',    name: 'Candy',     req: 10, pattern: 'stripe',  head: '#ffe0ef', base: '#ff8fc4', accent: '#ffffff' },
+  { id: 'ocean',    name: 'Bubbles',   req: 20, pattern: 'dot',     head: '#bdf3ff', base: '#3aa8d8', accent: '#eafcff' },
+  { id: 'chess',    name: 'Chess',     req: 30, pattern: 'check',   head: '#e8e2ff', base: '#5b4fc7', accent: '#221a4f' },
+  { id: 'tiger',    name: 'Tiger',     req: 40, pattern: 'tiger',   head: '#ffdca3', base: '#ff9d3d', accent: '#241505' },
+  { id: 'camo',     name: 'Camo',      req: 50, pattern: 'camo',    head: '#c9d9a8', base: '#5c7a3f', accent: '#33461f' },
+  { id: 'galaxy',   name: 'Galaxy',    req: 60, pattern: 'galaxy',  head: '#d9c9ff', base: '#2c1e57', accent: '#ffffff' },
+  { id: 'zebra',    name: 'Zebra',     req: 70, pattern: 'tiger',   head: '#ffffff', base: '#f2f2f2', accent: '#111111' },
+  { id: 'circuit',  name: 'Circuit',   req: 80, pattern: 'circuit', head: '#c9fff5', base: '#0d2b26', accent: '#4dffe0' },
+  { id: 'rainbow',  name: 'Rainbow',   req: 90, pattern: 'rainbow', head: '#ffffff', base: '#ffffff', accent: '#ffffff' }
 ];
 
-// ── Persistence ──
-function saveProgress() {
-  try {
-    localStorage.setItem('snakeHighScore', highScore);
-    localStorage.setItem('snakeUnlocked', JSON.stringify([...unlockedSkins]));
-    localStorage.setItem('snakeActiveSkin', activeSkin.id);
-  } catch(e) {}
+best = parseInt(lsGet('snake_best')) || 0;
+document.getElementById('best').textContent = best;
+
+let selectedSkinId = lsGet('snake_skin') || 'classic';
+
+function unlockedSkins() {
+  return SKINS.filter(s => best >= s.req);
 }
 
-function loadProgress() {
-  try {
-    const hs = localStorage.getItem('snakeHighScore');
-    if (hs !== null) {
-      highScore = parseInt(hs) || 0;
-      document.getElementById('highScoreDisplay').textContent = highScore;
-    }
-    const ul = localStorage.getItem('snakeUnlocked');
-    if (ul) unlockedSkins = new Set(JSON.parse(ul));
-    const as = localStorage.getItem('snakeActiveSkin');
-    if (as) { const s = SKINS.find(x => x.id === as); if (s) activeSkin = s; }
-  } catch(e) {}
+function isUnlocked(skin) {
+  return best >= skin.req;
 }
 
-let activeSkin = SKINS[0];
-let unlockedSkins = new Set(['classic']);
-let newlyUnlocked = new Set();
-
-// Load saved data immediately
-loadProgress();
-
-function getSkinById(id) { return SKINS.find(s => s.id === id); }
-
-function checkUnlocks(currentScore) {
-  SKINS.forEach(skin => {
-    if (currentScore >= skin.unlockAt && !unlockedSkins.has(skin.id)) {
-      unlockedSkins.add(skin.id);
-      newlyUnlocked.add(skin.id);
-      showUnlockToast(skin.name);
-      saveProgress();
-    }
-  });
+function currentSkin() {
+  const skin = SKINS.find(s => s.id === selectedSkinId);
+  return (skin && isUnlocked(skin)) ? skin : SKINS[0];
 }
 
-function showUnlockToast(name) {
-  const t = document.getElementById('unlockToast');
-  t.textContent = `🔓 NEW SKIN UNLOCKED: ${name.toUpperCase()}`;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
+function checkNewUnlocks(prevBest, newBest) {
+  const newlyUnlocked = SKINS.filter(s => s.req > prevBest && s.req <= newBest);
+  if (newlyUnlocked.length) {
+    document.getElementById('shopDot').style.display = 'block';
+    document.getElementById('msg').textContent =
+      'New skin unlocked: ' + newlyUnlocked[newlyUnlocked.length - 1].name + '! Check the shop.';
+    return true;
+  }
+  return false;
 }
 
-function openShop() {
-  if (running && !paused) { paused = true; }
-  renderShop();
-  document.getElementById('shopModal').classList.remove('hidden');
-}
-
-function closeShop() {
-  document.getElementById('shopModal').classList.add('hidden');
-  if (running) paused = false;
+// Persists the best score to localStorage the moment it's beaten,
+// so it's saved even if the tab/browser closes mid-run (not just on game over).
+function updateBest(newScore) {
+  if (newScore > best) {
+    const prevBest = best;
+    best = newScore;
+    lsSet('snake_best', best);
+    document.getElementById('best').textContent = best;
+    return checkNewUnlocks(prevBest, best);
+  }
+  return false;
 }
 
 function renderShop() {
-  const grid = document.getElementById('skinsGrid');
-  grid.innerHTML = '';
-  SKINS.forEach(skin => {
-    const unlocked = unlockedSkins.has(skin.id);
-    const isActive = activeSkin.id === skin.id;
-    const isNew = newlyUnlocked.has(skin.id);
+  const grid = document.getElementById('skinGrid');
+  grid.innerHTML = '';
+  SKINS.forEach(skin => {
+    const unlocked = isUnlocked(skin);
+    const card = document.createElement('div');
+    card.className = 'skin-card' + (unlocked ? '' : ' locked') + (skin.id === selectedSkinId && unlocked ? ' selected' : '');
 
-    const card = document.createElement('div');
-    card.className = `skin-card${!unlocked ? ' locked' : ''}${isActive ? ' active' : ''}`;
+    const swatch = document.createElement('canvas');
+    swatch.width = 68;
+    swatch.height = 68;
+    swatch.className = 'skin-swatch';
+    const sctx = swatch.getContext('2d');
+    const tile = 34;
+    for (let ty = 0; ty < 2; ty++) {
+      for (let tx = 0; tx < 2; tx++) {
+        const idx = ty * 2 + tx;
+        paintPattern(sctx, tx*tile, ty*tile, tile, tile, 6, skin, idx, false);
+      }
+    }
 
-    // Preview canvas
-    const previewCanvas = document.createElement('canvas');
-    previewCanvas.width = 56; previewCanvas.height = 56;
-    previewCanvas.className = 'skin-preview';
-    drawSkinPreview(previewCanvas, skin, unlocked);
-
-    const info = document.createElement('div');
-    info.className = 'skin-info';
-    info.innerHTML = `
-      <div class="skin-name">${skin.name}</div>
-      <div class="skin-desc">${skin.desc}</div>
-      <div class="skin-unlock ${unlocked ? 'unlocked' : 'locked-txt'}">
-        ${unlocked ? '✓ UNLOCKED' : `🔒 UNLOCK AT ${skin.unlockAt} PTS`}
-      </div>
-    `;
-
-    if (isActive) {
-      const badge = document.createElement('div');
-      badge.className = 'skin-badge equipped';
-      badge.textContent = 'EQUIPPED';
-      card.appendChild(badge);
-    } else if (isNew && unlocked) {
-      const badge = document.createElement('div');
-      badge.className = 'skin-badge new-badge';
-      badge.textContent = 'NEW!';
-      card.appendChild(badge);
-    }
-
-    card.appendChild(previewCanvas);
-    card.appendChild(info);
-
-    if (unlocked) {
-      card.addEventListener('click', () => {
-        activeSkin = skin;
-        newlyUnlocked.delete(skin.id);
-        saveProgress();
-        renderShop();
-      });
-    }
-    grid.appendChild(card);
-  });
+    const name = document.createElement('div');
+    name.className = 'skin-name';
+    name.textContent = skin.name;
+    card.appendChild(swatch);
+    card.appendChild(name);
+    if (!unlocked) {
+      const req = document.createElement('div');
+      req.className = 'skin-req';
+      req.textContent = 'Best score ' + skin.req;
+      card.appendChild(req);
+    }
+    card.onclick = () => {
+      if (!unlocked) return;
+      selectedSkinId = skin.id;
+      lsSet('snake_skin', selectedSkinId);
+      renderShop();
+    };
+    grid.appendChild(card);
+  });
 }
 
-function drawSkinPreview(canvas, skin, unlocked) {
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
-  ctx.clearRect(0, 0, W, H);
-
-  // Background
-  ctx.fillStyle = '#0d1a0d';
-  ctx.fillRect(0, 0, W, H);
-
-  if (!unlocked) {
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.fillRect(0, 0, W, H);
-    ctx.font = '22px serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('🔒', W/2, H/2);
-    return;
-  }
-
-  // Draw a small snake preview: 4 circles in an L shape
-  const segs = [{x:32,y:28},{x:24,y:28},{x:16,y:28},{x:16,y:20}];
-  const R = 7;
-
-  // Connectors
-  for (let i = 1; i < segs.length; i++) {
-    const a = segs[i], b = segs[i-1];
-    const t = i / segs.length;
-    const dx = b.x-a.x, dy = b.y-a.y;
-    const len = Math.sqrt(dx*dx+dy*dy);
-    const nx = -dy/len, ny = dx/len;
-    ctx.beginPath();
-    ctx.moveTo(a.x+nx*R, a.y+ny*R);
-    ctx.lineTo(b.x+nx*R, b.y+ny*R);
-    ctx.lineTo(b.x-nx*R, b.y-ny*R);
-    ctx.lineTo(a.x-nx*R, a.y-ny*R);
-    ctx.closePath();
-    ctx.fillStyle = skin.body(t);
-    ctx.fill();
-  }
-
-  // Circles
-  segs.forEach((s, i) => {
-    const t = i / segs.length;
-    if (i === 0) {
-      ctx.shadowColor = skin.glow;
-      ctx.shadowBlur = 10;
-    } else ctx.shadowBlur = 0;
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, i===0?R*1.1:R, 0, Math.PI*2);
-    ctx.fillStyle = i===0 ? skin.head : skin.body(t);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    // sheen
-    ctx.beginPath();
-    ctx.arc(s.x-R*0.28, s.y-R*0.28, R*0.3, 0, Math.PI*2);
-    ctx.fillStyle = 'rgba(255,255,255,0.2)';
-    ctx.fill();
-  });
-
-  // Eye on head
-  ctx.beginPath();
-  ctx.arc(segs[0].x+3, segs[0].y-3, 2, 0, Math.PI*2);
-  ctx.fillStyle = skin.eyeColor || '#000';
-  ctx.fill();
-}
-
-
-const CANVAS = document.getElementById('gameCanvas');
-const CTX = CANVAS.getContext('2d');
-const COLS = 20, ROWS = 20;
-const CELL = CANVAS.width / COLS;
-
-let snake, dir, nextDir, food, score, highScore = 0, gameLoop, running, paused, level, frameRate;
-let eatParticles = [];
-let flashAlpha = 0;
-
-// Direction vectors
-const DIRS = {
-  UP:    {x: 0, y:-1},
-  DOWN:  {x: 0, y: 1},
-  LEFT:  {x:-1, y: 0},
-  RIGHT: {x: 1, y: 0}
+document.getElementById('shopBtn').onclick = () => {
+  document.getElementById('shopDot').style.display = 'none';
+  renderShop();
+  document.getElementById('overlay').classList.add('open');
+};
+document.getElementById('shopClose').onclick = () => {
+  document.getElementById('overlay').classList.remove('open');
 };
 
-const OPPOSITES = { UP:'DOWN', DOWN:'UP', LEFT:'RIGHT', RIGHT:'LEFT' };
-
-function startGame() {
-  document.getElementById('startScreen').classList.add('hidden');
-  document.getElementById('gameOverScreen').classList.add('hidden');
-
-  snake = [
-    {x: 10, y: 10},
-    {x: 9,  y: 10},
-    {x: 8,  y: 10}
-  ];
-  dir = DIRS.RIGHT;
-  nextDir = DIRS.RIGHT;
-  score = 0;
-  level = 1;
-  frameRate = 175;
-  eatParticles = [];
-  flashAlpha = 0;
-  running = true;
-  paused = false;
-
-  updateScoreDisplay(0);
-  updateLevel();
-  spawnFood();
-
-  clearInterval(gameLoop);
-  gameLoop = setInterval(tick, frameRate);
+function init() {
+  snake = [
+    {x: 8, y: 10},
+    {x: 7, y: 10},
+    {x: 6, y: 10}
+  ];
+  dir = {x: 1, y: 0};
+  nextDir = {x: 1, y: 0};
+  score = 0;
+  speed = 130;
+  running = true;
+  document.getElementById('score').textContent = score;
+  document.getElementById('msg').textContent = 'Use arrow keys / WASD to move';
+  document.getElementById('restart').style.display = 'none';
+  placeFood();
+  if (timer) clearTimeout(timer);
+  loop();
 }
 
-function spawnFood() {
-  let pos;
-  do {
-    pos = { x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS) };
-  } while (snake.some(s => s.x === pos.x && s.y === pos.y));
-  food = pos;
-  food.pulse = 0;
+function placeFood() {
+  let valid = false;
+  while (!valid) {
+    food = { x: Math.floor(Math.random()*cols), y: Math.floor(Math.random()*rows) };
+    valid = !snake.some(s => s.x === food.x && s.y === food.y);
+  }
 }
 
-function tick() {
-  if (!running || paused) return;
-
-  // Move
-  dir = nextDir;
-  const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
-
-  // Wall collision
-  if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) {
-    endGame(); return;
-  }
-
-  // Self collision
-  if (snake.some(s => s.x === head.x && s.y === head.y)) {
-    endGame(); return;
-  }
-
-  snake.unshift(head);
-
-  // Eat food
-  if (head.x === food.x && head.y === food.y) {
-    score += 1;
-    updateScoreDisplay(score);
-    checkUnlocks(score);
-    spawnEatParticles(food.x, food.y);
-    flashAlpha = 0.15;
-    spawnFood();
-    updateLevel();
-  } else {
-    snake.pop();
-  }
-
-  draw();
+function loop() {
+  if (!running) return;
+  update();
+  draw();
+  timer = setTimeout(loop, speed);
 }
 
-function updateScoreDisplay(s) {
-  const el = document.getElementById('scoreDisplay');
-  el.textContent = s;
-  el.classList.add('bump');
-  setTimeout(() => el.classList.remove('bump'), 200);
-  if (s > highScore) {
-    highScore = s;
-    document.getElementById('highScoreDisplay').textContent = highScore;
-    saveProgress();
-  }
+function update() {
+  dir = nextDir;
+  const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+
+  if (head.x < 0 || head.x >= cols || head.y < 0 || head.y >= rows || snake.some(s => s.x === head.x && s.y === head.y)) {
+    gameOver();
+    return;
+  }
+
+  snake.unshift(head);
+
+  if (head.x === food.x && head.y === food.y) {
+    score++;
+    document.getElementById('score').textContent = score;
+    updateBest(score);
+    if (speed > 60) speed -= 3;
+    placeFood();
+  } else {
+    snake.pop();
+  }
 }
 
-function updateLevel() {
-  const newLevel = Math.floor(score / 100) + 1;
-  if (newLevel !== level || score === 0) {
-    level = Math.max(1, newLevel);
-    const dots = document.querySelectorAll('.dot');
-    const activeDots = Math.min(level, 5);
-    dots.forEach((d, i) => {
-      d.classList.toggle('active', i < activeDots);
-    });
-    document.getElementById('levelBadge').textContent = `LEVEL ${String(level).padStart(2,'0')}`;
-    // Speed up
-    const newRate = Math.max(75, 175 - (level - 1) * 15);
-    if (newRate !== frameRate) {
-      frameRate = newRate;
-      clearInterval(gameLoop);
-      gameLoop = setInterval(tick, frameRate);
-    }
-  }
+function gameOver() {
+  running = false;
+  clearTimeout(timer);
+  if (score === best && score > 0) {
+    document.getElementById('msg').textContent = 'New best! Score: ' + score;
+  } else {
+    document.getElementById('msg').textContent = 'Game over — Score: ' + score;
+  }
+  document.getElementById('restart').style.display = 'inline-block';
 }
 
-function spawnEatParticles(gx, gy) {
-  const cx = gx * CELL + CELL / 2;
-  const cy = gy * CELL + CELL / 2;
-  for (let i = 0; i < 14; i++) {
-    const angle = (Math.PI * 2 / 14) * i + Math.random() * 0.5;
-    const speed = Math.random() * 3 + 1;
-    eatParticles.push({
-      x: cx, y: cy,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      life: 1,
-      decay: Math.random() * 0.04 + 0.03,
-      r: Math.random() * 3 + 1,
-      color: Math.random() > 0.5 ? '#a0522d' : '#d4834a'
-    });
-  }
-}
-
-function endGame() {
-  running = false;
-  clearInterval(gameLoop);
-
-  document.getElementById('finalScore').textContent = score;
-  const newHighEl = document.getElementById('newHighMsg');
-  newHighEl.style.display = score >= highScore && score > 0 ? 'block' : 'none';
-  setTimeout(() => {
-    document.getElementById('gameOverScreen').classList.remove('hidden');
-  }, 600);
-}
-
-// =====================
-//  DRAW
-// =====================
 function draw() {
-  const W = CANVAS.width, H = CANVAS.height;
-  CTX.clearRect(0, 0, W, H);
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--board');
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // ── Football field background ──
+  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--grid');
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= cols; i++) {
+    ctx.beginPath();
+    ctx.moveTo(i*cell, 0);
+    ctx.lineTo(i*cell, canvas.height);
+    ctx.stroke();
+  }
+  for (let j = 0; j <= rows; j++) {
+    ctx.beginPath();
+    ctx.moveTo(0, j*cell);
+    ctx.lineTo(canvas.width, j*cell);
+    ctx.stroke();
+  }
 
-  // Alternating grass stripes (10 horizontal bands)
-  const stripeCount = 10;
-  const stripeH = H / stripeCount;
-  for (let s = 0; s < stripeCount; s++) {
-    CTX.fillStyle = s % 2 === 0 ? '#2d6e2d' : '#276527';
-    CTX.fillRect(0, s * stripeH, W, stripeH);
-  }
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--food');
+  roundRect(food.x*cell+2, food.y*cell+2, cell-4, cell-4, 5);
+  ctx.fill();
 
-  // Subtle grass texture — fine lines
-  CTX.strokeStyle = 'rgba(0,0,0,0.07)';
-  CTX.lineWidth = 0.5;
-  for (let s = 0; s < stripeCount; s++) {
-    const y0 = s * stripeH;
-    for (let line = 1; line < 5; line++) {
-      const ly = y0 + (stripeH / 5) * line;
-      CTX.beginPath();
-      CTX.moveTo(0, ly); CTX.lineTo(W, ly);
-      CTX.stroke();
-    }
-  }
-
-  // Yard lines (every 2 rows = 10 yards)
-  CTX.strokeStyle = 'rgba(255,255,255,0.55)';
-  CTX.lineWidth = 1.5;
-  const yardEvery = 2; // every 2 cells
-  for (let j = 0; j <= ROWS; j += yardEvery) {
-    CTX.beginPath();
-    CTX.moveTo(0, j * CELL);
-    CTX.lineTo(W, j * CELL);
-    CTX.stroke();
-  }
-
-  // Side boundary lines
-  CTX.strokeStyle = 'rgba(255,255,255,0.7)';
-  CTX.lineWidth = 2.5;
-  CTX.strokeRect(2, 2, W - 4, H - 4);
-
-  // Center midfield line (dashed)
-  CTX.setLineDash([8, 6]);
-  CTX.strokeStyle = 'rgba(255,255,255,0.35)';
-  CTX.lineWidth = 1.5;
-  CTX.beginPath();
-  CTX.moveTo(0, H / 2);
-  CTX.lineTo(W, H / 2);
-  CTX.stroke();
-  CTX.setLineDash([]);
-
-  // Center circle
-  CTX.strokeStyle = 'rgba(255,255,255,0.25)';
-  CTX.lineWidth = 1.5;
-  CTX.beginPath();
-  CTX.arc(W / 2, H / 2, CELL * 2, 0, Math.PI * 2);
-  CTX.stroke();
-
-  // End zones (top & bottom 2 rows) — darker green tint
-  CTX.fillStyle = 'rgba(0,0,0,0.18)';
-  CTX.fillRect(0, 0, W, CELL * 2);
-  CTX.fillRect(0, H - CELL * 2, W, CELL * 2);
-
-  // End zone lines
-  CTX.strokeStyle = 'rgba(255,255,255,0.6)';
-  CTX.lineWidth = 2;
-  CTX.beginPath(); CTX.moveTo(0, CELL * 2); CTX.lineTo(W, CELL * 2); CTX.stroke();
-  CTX.beginPath(); CTX.moveTo(0, H - CELL * 2); CTX.lineTo(W, H - CELL * 2); CTX.stroke();
-
-  // Hash marks on each yard line
-  CTX.strokeStyle = 'rgba(255,255,255,0.4)';
-  CTX.lineWidth = 1;
-  for (let j = 0; j <= ROWS; j += yardEvery) {
-    const ly = j * CELL;
-    const hashLen = 6;
-    // left hashes
-    CTX.beginPath(); CTX.moveTo(W * 0.3, ly - hashLen); CTX.lineTo(W * 0.3, ly + hashLen); CTX.stroke();
-    // right hashes
-    CTX.beginPath(); CTX.moveTo(W * 0.7, ly - hashLen); CTX.lineTo(W * 0.7, ly + hashLen); CTX.stroke();
-  }
-
-  // Flash on eat
-  if (flashAlpha > 0) {
-    CTX.fillStyle = `rgba(245,230,66,${flashAlpha})`;
-    CTX.fillRect(0, 0, W, H);
-    flashAlpha -= 0.015;
-  }
-
-  // Food
-  food.pulse = (food.pulse || 0) + 0.08;
-  const fp = food.pulse;
-  const fx = food.x * CELL + CELL / 2;
-  const fy = food.y * CELL + CELL / 2;
-  const fScale = 1 + Math.sin(fp) * 0.12;
-  const fRadius = (CELL * 0.35) * fScale;
-
-  // Outer glow rings
-  for (let g = 3; g > 0; g--) {
-    CTX.beginPath();
-    CTX.ellipse(fx, fy, fRadius * 1.4 + g * 4, fRadius + g * 3, Math.PI / 4, 0, Math.PI * 2);
-    CTX.fillStyle = `rgba(139,90,43,${0.06 / g})`;
-    CTX.fill();
-  }
-
-  CTX.save();
-  CTX.translate(fx, fy);
-  CTX.rotate(Math.PI / 4);
-
-  const fw = fRadius * 1.5;
-  const fh = fRadius * 1.0;
-
-  // Football body gradient
-  const grd = CTX.createRadialGradient(-fw * 0.2, -fh * 0.2, 1, 0, 0, fw);
-  grd.addColorStop(0, '#d4834a');
-  grd.addColorStop(0.45, '#a0522d');
-  grd.addColorStop(1, '#5c2d0e');
-
-  CTX.beginPath();
-  CTX.ellipse(0, 0, fw, fh, 0, 0, Math.PI * 2);
-  CTX.fillStyle = grd;
-  CTX.fill();
-
-  // Dark seam outline
-  CTX.strokeStyle = '#3a1a05';
-  CTX.lineWidth = 1;
-  CTX.stroke();
-
-  // White laces (vertical center stitch)
-  CTX.strokeStyle = 'rgba(255,255,255,0.9)';
-  CTX.lineWidth = 1.2;
-  CTX.beginPath();
-  CTX.moveTo(0, -fh * 0.75);
-  CTX.lineTo(0,  fh * 0.75);
-  CTX.stroke();
-
-  // Cross lace stitches
-  const stitchW = fw * 0.28;
-  for (let s = -1; s <= 1; s++) {
-    const sy = s * fh * 0.38;
-    CTX.beginPath();
-    CTX.moveTo(-stitchW, sy);
-    CTX.lineTo( stitchW, sy);
-    CTX.stroke();
-  }
-
-  // Highlight sheen
-  CTX.beginPath();
-  CTX.ellipse(-fw * 0.25, -fh * 0.3, fw * 0.3, fh * 0.18, -0.3, 0, Math.PI * 2);
-  CTX.fillStyle = 'rgba(255,255,255,0.18)';
-  CTX.fill();
-
-  CTX.restore();
-
-  // Snake — smooth tubular style
-  const R = CELL * 0.42; // circle radius per segment
-
-  function segColor(i) {
-    const t = i / snake.length;
-    if (i === 0) {
-      // Parse head hex to rgb
-      const h = activeSkin.head;
-      const r = parseInt(h.slice(1,3),16), g2 = parseInt(h.slice(3,5),16), b2 = parseInt(h.slice(5,7),16);
-      return { r, g: g2, b: b2, raw: h };
-    }
-    return { raw: activeSkin.body(t) };
-  }
-
-  // Draw connectors between adjacent segments first (back to front)
-  for (let i = snake.length - 1; i >= 1; i--) {
-    const a = snake[i], b = snake[i - 1];
-    const ax = a.x * CELL + CELL / 2, ay = a.y * CELL + CELL / 2;
-    const bx = b.x * CELL + CELL / 2, by = b.y * CELL + CELL / 2;
-
-    // Connector rect aligned between two circle centers
-    const dx = bx - ax, dy = by - ay;
-    const len = Math.sqrt(dx * dx + dy * dy);
-    const nx = -dy / len, ny = dx / len; // normal
-
-    CTX.beginPath();
-    CTX.moveTo(ax + nx * R, ay + ny * R);
-    CTX.lineTo(bx + nx * R, by + ny * R);
-    CTX.lineTo(bx - nx * R, by - ny * R);
-    CTX.lineTo(ax - nx * R, ay - ny * R);
-    CTX.closePath();
-
-    const grad = CTX.createLinearGradient(ax, ay, bx, by);
-    grad.addColorStop(0, segColor(i).raw);
-    grad.addColorStop(1, segColor(i - 1).raw);
-    CTX.fillStyle = grad;
-    CTX.fill();
-  }
-
-  // Draw circles on top of connectors (back to front)
-  for (let i = snake.length - 1; i >= 0; i--) {
-    const seg = snake[i];
-    const cx = seg.x * CELL + CELL / 2;
-    const cy = seg.y * CELL + CELL / 2;
-    const col = segColor(i).raw;
-    const radius = i === 0 ? R * 1.08 : R;
-
-    if (i === 0) {
-      CTX.shadowColor = activeSkin.glow;
-      CTX.shadowBlur = 18;
-    } else if (i < 5) {
-      CTX.shadowColor = activeSkin.glow;
-      CTX.shadowBlur = 8;
-    } else {
-      CTX.shadowBlur = 0;
-    }
-
-    CTX.beginPath();
-    CTX.arc(cx, cy, radius, 0, Math.PI * 2);
-    CTX.fillStyle = col;
-    CTX.fill();
-    CTX.shadowBlur = 0;
-
-    // Sheen highlight on each circle
-    CTX.beginPath();
-    CTX.arc(cx - radius * 0.28, cy - radius * 0.28, radius * 0.32, 0, Math.PI * 2);
-    CTX.fillStyle = `rgba(255,255,255,${i === 0 ? 0.25 : 0.1 * (1 - i / snake.length)})`;
-    CTX.fill();
-  }
-
-  // Head eyes
-  drawEyes(snake[0], dir);
-
-  // Head inner glow
-  const head = snake[0];
-  const hx = head.x * CELL + CELL / 2;
-  const hy = head.y * CELL + CELL / 2;
-  const hg = CTX.createRadialGradient(hx, hy, 0, hx, hy, CELL * 0.7);
-  hg.addColorStop(0, activeSkin.glow + '1f');
-  hg.addColorStop(1, activeSkin.glow + '00');
-  CTX.fillStyle = hg;
-  CTX.beginPath();
-  CTX.arc(hx, hy, CELL * 0.7, 0, Math.PI * 2);
-  CTX.fill();
-
-  // Eat particles
-  for (let i = eatParticles.length - 1; i >= 0; i--) {
-    const p = eatParticles[i];
-    p.x += p.vx; p.y += p.vy;
-    p.vx *= 0.92; p.vy *= 0.92;
-    p.life -= p.decay;
-    if (p.life <= 0) { eatParticles.splice(i, 1); continue; }
-    CTX.globalAlpha = p.life;
-    CTX.fillStyle = p.color;
-    CTX.beginPath();
-    CTX.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
-    CTX.fill();
-    CTX.globalAlpha = 1;
-  }
+  const skin = currentSkin();
+  snake.forEach((s, i) => {
+    paintPattern(ctx, s.x*cell+1, s.y*cell+1, cell-2, cell-2, 4, skin, i, i === 0);
+  });
 }
 
-function drawEyes(seg, d) {
-  const cx = seg.x * CELL + CELL / 2;
-  const cy = seg.y * CELL + CELL / 2;
-  const er = 2.5;
-  const offset = 5;
-
-  let e1, e2;
-  if (d === DIRS.RIGHT)  { e1 = {x: cx+3, y: cy-offset}; e2 = {x: cx+3, y: cy+offset}; }
-  else if (d === DIRS.LEFT)  { e1 = {x: cx-3, y: cy-offset}; e2 = {x: cx-3, y: cy+offset}; }
-  else if (d === DIRS.UP)    { e1 = {x: cx-offset, y: cy-3}; e2 = {x: cx+offset, y: cy-3}; }
-  else                   { e1 = {x: cx-offset, y: cy+3}; e2 = {x: cx+offset, y: cy+3}; }
-
-  [e1, e2].forEach(e => {
-    CTX.beginPath();
-    CTX.arc(e.x, e.y, er, 0, Math.PI * 2);
-    CTX.fillStyle = activeSkin.eyeColor || '#0a0a0f';
-    CTX.fill();
-    CTX.beginPath();
-    CTX.arc(e.x + 0.5, e.y - 0.5, er * 0.4, 0, Math.PI * 2);
-    CTX.fillStyle = 'rgba(255,255,255,0.8)';
-    CTX.fill();
-  });
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
 }
 
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
+function hashCell(a, b) {
+  const v = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453;
+  return v - Math.floor(v);
 }
 
-// =====================
-//  INPUT
-// =====================
+// Paints one snake segment (or shop swatch tile) with the skin's pattern.
+// ctx: canvas 2d context, x/y/w/h: rect, skin: skin object,
+// i: index along the snake (or tile index for swatches), isHead: bool
+function paintPattern(pctx, x, y, w, h, r, skin, i, isHead) {
+  pctx.save();
+  pctx.beginPath();
+  pctx.moveTo(x+r, y);
+  pctx.arcTo(x+w, y, x+w, y+h, r);
+  pctx.arcTo(x+w, y+h, x, y+h, r);
+  pctx.arcTo(x, y+h, x, y, r);
+  pctx.arcTo(x, y, x+w, y, r);
+  pctx.closePath();
+  pctx.clip();
+
+  // base fill
+  if (skin.pattern === 'rainbow') {
+    const hue = (i * 32) % 360;
+    pctx.fillStyle = isHead ? '#ffffff' : `hsl(${hue}, 85%, 65%)`;
+  } else {
+    pctx.fillStyle = isHead ? skin.head : skin.base;
+  }
+  pctx.fillRect(x, y, w, h);
+
+  if (!isHead) {
+    pctx.fillStyle = skin.accent;
+    switch (skin.pattern) {
+      case 'stripe':
+        if (i % 2 === 0) pctx.fillRect(x, y, w * 0.42, h);
+        break;
+      case 'dot':
+        if (i % 2 === 0) {
+          pctx.beginPath();
+          pctx.arc(x + w/2, y + h/2, w * 0.24, 0, Math.PI*2);
+          pctx.fill();
+        }
+        break;
+      case 'check':
+        if (i % 2 === 0) pctx.fillRect(x, y, w, h);
+        break;
+      case 'tiger':
+        pctx.save();
+        pctx.translate(x + w/2, y + h/2);
+        pctx.rotate(Math.PI / 4);
+        if (i % 2 === 0) pctx.fillRect(-w/2, -h*0.16, w, h*0.32);
+        pctx.restore();
+        break;
+      case 'camo': {
+        const h1 = hashCell(i, 1.7);
+        const h2 = hashCell(i, 5.3);
+        if (h1 > 0.4) {
+          pctx.beginPath();
+          pctx.ellipse(x + w*0.35, y + h*0.4, w*0.32, h*0.22, h1*3, 0, Math.PI*2);
+          pctx.fill();
+        }
+        if (h2 > 0.55) {
+          pctx.beginPath();
+          pctx.ellipse(x + w*0.65, y + h*0.65, w*0.26, h*0.2, h2*2, 0, Math.PI*2);
+          pctx.fill();
+        }
+        break;
+      }
+      case 'galaxy': {
+        for (let k = 0; k < 3; k++) {
+          const hx = hashCell(i + k*3.1, 2.2);
+          const hy = hashCell(i + k*1.7, 9.9);
+          pctx.beginPath();
+          pctx.arc(x + hx*w, y + hy*h, 1.1, 0, Math.PI*2);
+          pctx.fill();
+        }
+        break;
+      }
+      case 'circuit':
+        pctx.strokeStyle = skin.accent;
+        pctx.lineWidth = Math.max(1, w * 0.08);
+        pctx.beginPath();
+        if (i % 2 === 0) {
+          pctx.moveTo(x + w/2, y);
+          pctx.lineTo(x + w/2, y + h);
+        } else {
+          pctx.moveTo(x, y + h/2);
+          pctx.lineTo(x + w, y + h/2);
+        }
+        pctx.stroke();
+        pctx.beginPath();
+        pctx.arc(x + w/2, y + h/2, w*0.09, 0, Math.PI*2);
+        pctx.fill();
+        break;
+      default:
+        break; // 'solid' — no overlay
+    }
+  }
+  pctx.restore();
+}
+
+function setDir(x, y) {
+  if (dir.x === -x && dir.y === -y) return; // no reverse
+  nextDir = {x, y};
+}
+
 document.addEventListener('keydown', e => {
-  const map = {
-    ArrowUp: 'UP', ArrowDown: 'DOWN', ArrowLeft: 'LEFT', ArrowRight: 'RIGHT',
-    w: 'UP', s: 'DOWN', a: 'LEFT', d: 'RIGHT',
-    W: 'UP', S: 'DOWN', A: 'LEFT', D: 'RIGHT'
-  };
-
-  if (e.key === 'p' || e.key === 'P') {
-    if (running) { paused = !paused; }
-    return;
-  }
-
-  if (e.key === 'Escape') {
-    if (!document.getElementById('shopModal').classList.contains('hidden')) { closeShop(); return; }
-    if (running) { endGame(); }
-    return;
-  }
-
-  const newDirKey = map[e.key];
-  if (!newDirKey) return;
-  e.preventDefault();
-
-  if (!running) { startGame(); return; }
-
-  const newDir = DIRS[newDirKey];
-  const curDirKey = Object.keys(DIRS).find(k => DIRS[k] === dir);
-  if (OPPOSITES[newDirKey] !== curDirKey) {
-    nextDir = newDir;
-  }
+  switch (e.key) {
+    case 'ArrowUp': case 'w': case 'W': setDir(0, -1); break;
+    case 'ArrowDown': case 's': case 'S': setDir(0, 1); break;
+    case 'ArrowLeft': case 'a': case 'A': setDir(-1, 0); break;
+    case 'ArrowRight': case 'd': case 'D': setDir(1, 0); break;
+  }
 });
 
-// Touch / swipe support
-let touchStart = null;
-CANVAS.addEventListener('touchstart', e => {
-  touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  e.preventDefault();
-}, { passive: false });
+document.getElementById('up').onclick = () => setDir(0, -1);
+document.getElementById('down').onclick = () => setDir(0, 1);
+document.getElementById('left').onclick = () => setDir(-1, 0);
+document.getElementById('right').onclick = () => setDir(1, 0);
+document.getElementById('restart').onclick = init;
 
-CANVAS.addEventListener('touchend', e => {
-  if (!touchStart) return;
-  const dx = e.changedTouches[0].clientX - touchStart.x;
-  const dy = e.changedTouches[0].clientY - touchStart.y;
-  const absDx = Math.abs(dx), absDy = Math.abs(dy);
+// swipe support
+let touchStartX, touchStartY;
+canvas.addEventListener('touchstart', e => {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}, {passive: true});
+canvas.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  if (Math.abs(dx) > Math.abs(dy)) {
+    setDir(dx > 0 ? 1 : -1, 0);
+  } else {
+    setDir(0, dy > 0 ? 1 : -1);
+  }
+}, {passive: true});
 
-  if (Math.max(absDx, absDy) < 10) return;
+document.getElementById('startBtn').onclick = () => {
+  document.getElementById('startOverlay').classList.remove('open');
+  init();
+};
 
-  let swipeDir;
-  if (absDx > absDy) swipeDir = dx > 0 ? 'RIGHT' : 'LEFT';
-  else swipeDir = dy > 0 ? 'DOWN' : 'UP';
-
-  const newDir = DIRS[swipeDir];
-  const curDirKey = Object.keys(DIRS).find(k => DIRS[k] === dir);
-  if (!running) { startGame(); return; }
-  if (OPPOSITES[swipeDir] !== curDirKey) nextDir = newDir;
-  touchStart = null;
-  e.preventDefault();
-}, { passive: false });
-
-// Initial idle draw
-(function idleDraw() {
-  const W = CANVAS.width, H = CANVAS.height;
-  CTX.clearRect(0, 0, W, H);
-  CTX.fillStyle = '#2d6e2d';
-  CTX.fillRect(0, 0, W, H);
-  CTX.strokeStyle = 'rgba(255,255,255,0.2)';
-  CTX.lineWidth = 1;
-  for (let i = 0; i <= COLS; i++) {
-    CTX.beginPath(); CTX.moveTo(i * CELL, 0); CTX.lineTo(i * CELL, H); CTX.stroke();
-  }
-  for (let j = 0; j <= ROWS; j++) {
-    CTX.beginPath(); CTX.moveTo(0, j * CELL); CTX.lineTo(W, j * CELL); CTX.stroke();
-  }
+// idle preview before first start
+(function drawIdle() {
+  snake = [{x: 8, y: 10}, {x: 7, y: 10}, {x: 6, y: 10}];
+  food = { x: 14, y: 10 };
+  const skin = currentSkin();
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--board');
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--grid');
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= cols; i++) {
+    ctx.beginPath(); ctx.moveTo(i*cell, 0); ctx.lineTo(i*cell, canvas.height); ctx.stroke();
+  }
+  for (let j = 0; j <= rows; j++) {
+    ctx.beginPath(); ctx.moveTo(0, j*cell); ctx.lineTo(canvas.width, j*cell); ctx.stroke();
+  }
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--food');
+  roundRect(food.x*cell+2, food.y*cell+2, cell-4, cell-4, 5);
+  ctx.fill();
+  snake.forEach((s, i) => paintPattern(ctx, s.x*cell+1, s.y*cell+1, cell-2, cell-2, 4, skin, i, i === 0));
 })();
 </script>
-
 </body>
 </html>

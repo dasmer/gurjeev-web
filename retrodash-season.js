@@ -100,3 +100,35 @@ export function gameVenue(game,index,regularGames){
   if(game?.title==='Super Bowl')return 'neutral';
   return index<regularGames&&index>=regularGames/2?'away':'home';
 }
+
+// Each conference has two divisional games feeding one championship game.
+export function playoffBracket(season){
+  if(!season)return null;
+  const start=season.regularGames;
+  const conference=season.division.slice(0,3);
+  const results=season.results.slice(start);
+  const [peer,first,second,final]=season.playoffs?.games??[];
+  const scheduled=season.playoffs||results.length;
+  const playerWon=index=>results[index]?.home>results[index]?.away;
+  const match=(team,opponent,result)=>({
+    team,opponent,home:result?.home,away:result?.away,
+    winner:result?(result.home>result.away?team:opponent):null,
+  });
+  const playerSide=[
+    match(scheduled?season.team:null,scheduled?season.schedule[start].opponent:null,results[0]),
+    peer??match(null,null),
+    match(playerWon(0)?season.team:results[0]?season.schedule[start].opponent:null,
+      peer?.winner??(scheduled?season.schedule[start+1].opponent:null),results[1]),
+  ];
+  const otherSide=[first??match(null,null),second??match(null,null),final??match(null,null)];
+  const otherChampion=final?.winner??(results.length>1?season.schedule[start+2].opponent:null);
+  const playerChampion=playerWon(1)?season.team:null;
+  const championship=match(playerChampion,otherChampion,results[2]);
+  return {
+    AFC:conference==='AFC'?playerSide:otherSide,
+    NFC:conference==='NFC'?playerSide:otherSide,
+    championship,
+    nextIndex:seasonStatus(season).ending||season.results.length<start?-1:results.length,
+    conference,
+  };
+}

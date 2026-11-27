@@ -1,3 +1,4 @@
+import {renderPlayoffBracket} from './retrodash-bracket.js';
 import {findPassCatch} from './retrodash-passing.js';
 import {loadPlayerSprites,attachPlayerSprite,showPlayerSprite} from './retrodash-sprites.js';
 import * as THREE from './vendor/three.module.js';
@@ -379,6 +380,7 @@ function run(rb=false){if(paused||!['ready','live'].includes(state))return;if(st
 function dive(){if(state==='run'&&!diveUsed&&!paused){diveTime=.6;diveUsed=true;beep(180);}}
 function newDrive(){spot=25;down=1;lineToGain=35;}
 let defensiveDrive=null;
+const defensePacing={opening:.65,play:.5,result:1.15,fastMultiplier:4};
 let defenseDelay=0;
 let fastDefense=false;
 $('defenseSpeed').onclick=()=>{
@@ -405,14 +407,14 @@ function showDefense(){
 function beginDefense(yard,openingCall){
   defensiveDrive=startDefensiveDrive(yard,openingCall);
   state='defense';
-  defenseDelay=1.05;
+  defenseDelay=defensePacing.opening;
   showDefense();
   updateUI();
   saveMatch('defense');
 }
 
 function tickDefense(dt){
-  defenseDelay-=dt*(fastDefense?3:1);
+  defenseDelay-=dt*(fastDefense?defensePacing.fastMultiplier:1);
   if(defenseDelay>0)return;
   const drive=defensiveDrive;
   if(drive.done){
@@ -457,7 +459,7 @@ function tickDefense(dt){
       }
     }
   }
-  defenseDelay=drive.done?1.65:.85;
+  defenseDelay=drive.done?defensePacing.result:defensePacing.play;
   showDefense();
   updateUI();
   saveMatch('defense');
@@ -478,6 +480,7 @@ function finish(){
     if(progress.next)$('overlayText').textContent+=' · Next: '+progress.next.title+' vs '+teamByCode(progress.next.opponent)[0];
   }
   $('nextGame').hidden=!progress?.next;
+  $('resultBracket').hidden=!season;
   $('resume').hidden=true;try{const best=+(localStorage.getItem('gridironBest')||0);localStorage.setItem('gridironBest',Math.max(best,homeScore));}catch{}updateUI();}
 function endPlay(kind){
   if(!['live','run','flight','ready'].includes(state))return;
@@ -613,6 +616,14 @@ function saveMatch(stage='ready'){
   catch{storageAvailable=false;}
 }
 
+function checkpointOnExit(){
+  if(state==='ready'||state==='dead')saveMatch();
+  if(state==='defense')saveMatch('defense');
+  // An unfinished live play keeps the checkpoint written at its snap.
+}
+
+window.addEventListener('pagehide',checkpointOnExit);
+
 function refreshSaveMenu(){
   const savedSeason=savedMatch?.season;
   const progress=savedSeason?seasonStatus(savedSeason):null;
@@ -628,14 +639,6 @@ function refreshSaveMenu(){
   $('venueChoice').hidden=seasonMode;
   $('recordsTeam').value=String(teams.indexOf(selected));
   renderRecords();
-  const botGames=savedSeason?.playoffs?.games??[];
-  $('botBracket').hidden=!botGames.length;
-  $('botGames').replaceChildren(...botGames.map(game=>{
-    const item=document.createElement('li');
-    item.textContent=game.round+' · '+game.team+' '+game.home+'–'+game.away+' '+game.opponent+
-      ' · '+game.winner+' advances';
-    return item;
-  }));
   $('divisionInfo').textContent=seasonMode
     ? preview.division+' · '+preview.regularGames+' games · '+(Math.floor(preview.regularGames/2)+1)+' wins to qualify'
     : '';
@@ -647,7 +650,7 @@ function refreshSaveMenu(){
     ? (savedSeason?teamByCode(savedSeason.team)[0]+' · '+savedSeason.division+' · '+progress.record+
         (progress.ending?' · '+progress.ending:' · '+progress.next.title)
       : savedMatch?matchup+' · '+(savedMatch.stage==='over'?'Final':savedMatch.overtime?'OT':'Q'+savedMatch.quarter)
-      :'Autosaves between plays on this device.')
+      :'Autosaves between plays. Continue here after closing the game.')
     : 'Browser storage is unavailable. Progress lasts until you close or refresh this tab.';
 
   $('seasonSchedule').hidden=!savedSeason;
@@ -671,6 +674,7 @@ function enterMatch(){
   $('overlay').hidden=true;
   $('resume').hidden=false;
   $('nextGame').hidden=true;
+  $('resultBracket').hidden=true;
   $('defenseView').hidden=true;
   $('crowdCheer').hidden=true;
   cheerTime=0;
@@ -729,11 +733,18 @@ function continueMatch(){
   if(data.stage==='defense'){
     defensiveDrive=data.defense;
     state='defense';
-    defenseDelay=1.05;
+    defenseDelay=defensePacing.opening;
     showDefense();
     updateUI();
   }
 }
+function openBracket(currentSeason){
+  renderPlayoffBracket($('bracketGrid'),$('bracketStatus'),currentSeason,logoPaths,
+    code=>teamByCode(code)?.[0]??code);
+  $('bracketDialog').showModal();
+}
+$('showBracket').onclick=()=>openBracket(savedMatch?.season);
+$('resultBracket').onclick=()=>openBracket(season);
 $('continueGame').onclick=continueMatch;
 $('gameMode').onchange=refreshSaveMenu;
 $('homeTeam').onchange=refreshSaveMenu;
@@ -747,10 +758,16 @@ teams.forEach((team,index)=>$('recordsTeam').add(new Option(team[0],index)));
 $('recordsTeam').onchange=renderRecords;
 refreshSaveMenu();
 function pause(){if(state==='menu'||state==='over')return;paused=!paused;drag=null;aim=null;dots.forEach(d=>d.visible=false);targetRing.visible=false;$('overlay').hidden=!paused;$('overlayTitle').textContent='TIME OUT';$('overlayText').textContent='Take a breath. Your next big play is waiting.';$('resume').hidden=false;}
-$('start').onclick=start;$('snap').onclick=()=>{if(paused)return;if(state==='dead')formation();else snap();};$('run').onclick=()=>run();$('handoff').onclick=()=>run(true);$('dive').onclick=dive;$('pause').onclick=pause;$('resume').onclick=pause;$('restart').onclick=()=>{paused=false;state='menu';$('defenseView').hidden=true;$('crowdCheer').hidden=true;cheerTime=0;$('overlay').hidden=true;$('menu').hidden=false;for(const id of ['scoreboard','playInfo','controls'])$(id).hidden=true;document.body.classList.remove('playing');$('toast').textContent='';refreshSaveMenu();};$('route').onclick=()=>{if(state==='ready'&&!paused){route=(route+1)%3;drawPlayArt();saveMatch();updateUI();}};$('kick').onclick=()=>{if(state==='ready'&&!paused)endPlay(Math.random()<Math.max(.25,.95-(100-spot)/100)?'FIELD GOAL':'MISSED KICK');};$('punt').onclick=()=>{if(state==='ready'&&!paused)endPlay('PUNT');};$('sound').onclick=()=>{sound=!sound;$('sound').textContent=sound?'SOUND ON':'SOUND OFF';beep();};
+$('start').onclick=start;$('snap').onclick=()=>{if(paused)return;if(state==='dead')formation();else snap();};$('run').onclick=()=>run();$('handoff').onclick=()=>run(true);$('dive').onclick=dive;$('pause').onclick=pause;$('resume').onclick=pause;$('restart').onclick=()=>{checkpointOnExit();paused=false;state='menu';$('defenseView').hidden=true;$('crowdCheer').hidden=true;cheerTime=0;$('overlay').hidden=true;$('menu').hidden=false;for(const id of ['scoreboard','playInfo','controls'])$(id).hidden=true;document.body.classList.remove('playing');$('toast').textContent='';refreshSaveMenu();};$('route').onclick=()=>{if(state==='ready'&&!paused){route=(route+1)%3;drawPlayArt();saveMatch();updateUI();}};$('kick').onclick=()=>{if(state==='ready'&&!paused)endPlay(Math.random()<Math.max(.25,.95-(100-spot)/100)?'FIELD GOAL':'MISSED KICK');};$('punt').onclick=()=>{if(state==='ready'&&!paused)endPlay('PUNT');};$('sound').onclick=()=>{sound=!sound;$('sound').textContent=sound?'SOUND ON':'SOUND OFF';beep();};
 const ray=new THREE.Raycaster(),ground=new THREE.Plane(new THREE.Vector3(0,1,0),0);function groundPoint(x,y){const rect=$('game').getBoundingClientRect();ray.setFromCamera(new THREE.Vector2((x-rect.left)/rect.width*2-1,-(y-rect.top)/rect.height*2+1),camera);return ray.ray.intersectPlane(ground,new THREE.Vector3());}
 function passDuration(p){return .65+Math.hypot(p.x-qb.x,p.z-qb.z)/38;}
-function screenPoint(p){const v=new THREE.Vector3(p.x,1.5,p.z).project(camera);return{x:(v.x+1)*innerWidth/2,y:(1-v.y)*innerHeight/2};}
+function screenPoint(p){
+  const v=new THREE.Vector3(p.x,1.5,p.z).project(camera);
+  return {
+    x:fieldBounds.left+(v.x+1)*fieldBounds.width/2,
+    y:fieldBounds.top+(1-v.y)*fieldBounds.height/2,
+  };
+}
 function aimAt(e){const b=groundPoint(e.clientX,e.clientY);if(!b)return;const delta=b.sub(new THREE.Vector3(qb.x,0,qb.z));if(delta.length()>48)delta.setLength(48);aim=new THREE.Vector3(qb.x+delta.x,0,THREE.MathUtils.clamp(qb.z+delta.z,-29,29));
 // A receiver under the finger gets a modest lead assist; free-field aiming still works.
 let selected=null;
@@ -779,7 +796,9 @@ $('game').addEventListener('pointerdown',e=>{if(paused||drag||e.button!==0)retur
 $('game').addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId||paused)return;if(drag.run)steer=THREE.MathUtils.clamp((e.clientY-drag.y)/65,-1,1);else aimAt(e);});
 $('game').addEventListener('pointerup',e=>{if(!drag||drag.id!==e.pointerId)return;if(drag.run){steer=0;drag=null;return;}const distance=Math.hypot(e.clientX-drag.x,e.clientY-drag.y);const intended=distance>=10?aimAt(e):null;drag=null;if(state!=='live'||paused)return;if(!aim||distance<10){aim=null;dots.forEach(d=>d.visible=false);targetRing.visible=false;return;}if(aim.x<qb.x){run();return;}flight=createPass(aim,intended);state='flight';matchStats.passes++;aim=null;dots.forEach(d=>d.visible=false);beep(520);updateUI();});
 $('game').addEventListener('pointercancel',()=>{drag=null;aim=null;steer=0;dots.forEach(d=>d.visible=false);targetRing.visible=false;});
-const keys=new Set();window.addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','Space'].includes(e.code))e.preventDefault();if(e.repeat)return;keys.add(e.code);if(e.code==='Escape')pause();if(paused)return;if(e.code==='Space'){if(state==='ready')snap();else if(state==='dead')formation();else dive();}if(e.code==='KeyR')run();if(e.code==='KeyH')run(true);});window.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',()=>{keys.clear();if(!paused&&state!=='menu'&&state!=='over')pause();});document.addEventListener('visibilitychange',()=>{if(document.hidden&&!paused&&state!=='menu'&&state!=='over')pause();});
+const keys=new Set();window.addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','Space'].includes(e.code))e.preventDefault();if(e.repeat)return;keys.add(e.code);if(e.code==='Escape')pause();if(paused)return;if(e.code==='Space'){if(state==='ready')snap();else if(state==='dead')formation();else dive();}if(e.code==='KeyR')run();if(e.code==='KeyH')run(true);});window.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',()=>{keys.clear();if(!paused&&state!=='menu'&&state!=='over')pause();});document.addEventListener('visibilitychange',()=>{if(!document.hidden)return;
+  checkpointOnExit();
+  if(!paused&&state!=='menu'&&state!=='over')pause();});
 function distanceToCatch(player, point){
   return Math.hypot(player.x-point.x,player.z-point.z);
 }
@@ -986,10 +1005,15 @@ const fieldTags=['QB','WR 1','WR 2','TE','RB'].map(position=>{
   document.body.append(tag);
   return tag;
 });
+const compactField=matchMedia('(max-width: 700px), (max-height: 520px)');
+let fieldBounds;
 function resize(){
-  renderer.setSize(innerWidth,innerHeight);
-  const ratio=innerWidth/innerHeight;
-  const halfHeight=Math.max(innerWidth<700?39:32,22/ratio);
+  fieldBounds=$('game').getBoundingClientRect();
+  const {width,height}=fieldBounds;
+  if(!width||!height)return;
+  renderer.setSize(width,height,false);
+  const ratio=width/height;
+  const halfHeight=Math.max(compactField.matches&&document.body.classList.contains('playing')?29:32,22/ratio);
   camera.left=-halfHeight*ratio;
   camera.right=halfHeight*ratio;
   camera.top=halfHeight;
@@ -997,6 +1021,7 @@ function resize(){
   camera.updateProjectionMatrix();
 }
 window.addEventListener('resize',resize);
+new ResizeObserver(resize).observe($('game'));
 resize();
 formation();
 state='menu';
@@ -1026,7 +1051,11 @@ function frame(now){
 
   // Keep the view fixed during a pass. Scroll only when the runner nears the edge.
   if(state==='menu')cameraFocus=47;
-  if(state==='ready')cameraFocus=qb.x+(innerWidth<innerHeight?10:15);
+  if(state==='ready'){
+    const focus=qb.x+(fieldBounds.width<fieldBounds.height?10:15);
+    const edge=Math.min(camera.right,60);
+    cameraFocus=compactField.matches?THREE.MathUtils.clamp(focus,-10+edge,110-edge):focus;
+  }
   if(state==='run')cameraFocus=Math.max(cameraFocus,carrier.x-camera.right*.55);
   if(state==='return')cameraFocus=THREE.MathUtils.lerp(cameraFocus,carrier.x,1-Math.exp(-dt*6));
   const onDefense=state==='defense';
@@ -1070,9 +1099,11 @@ function frame(now){
     const position=screenPoint(player);
     tag.style.left=position.x+'px';
     const headHeight=player.sprite.visible?player.sprite.scale.y:2.6;
-    const headOffset=headHeight*innerHeight/(camera.top-camera.bottom);
-    tag.style.top=position.y+'px';
-    tag.style.setProperty('--tag-lift',Math.max(12,headOffset-4)+'px');
+    const headOffset=headHeight*fieldBounds.height/(camera.top-camera.bottom);
+    const lift=Math.max(12,headOffset-4);
+    const captionTop=fieldBounds.top+lift+18;
+    tag.style.top=Math.max(position.y,captionTop)+'px';
+    tag.style.setProperty('--tag-lift',lift+'px');
   });
   drawCarriedBall();
   renderer.render(scene,camera);

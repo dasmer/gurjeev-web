@@ -371,10 +371,20 @@ function formation(){for(const p of players){
   for(const material of materials)material.dispose();
   playerGroup.remove(p.root);
 }players=[];receivers=[];defenders=[];blockers=[];qb=player(spot-5,0,true,12,'QB');carrier=qb;for(let i=0;i<5;i++)blockers.push(player(spot-.7,(i-2)*2,true,60+i,'OL'));receivers.push(player(spot-1,-19,true,11,'WR'),player(spot-1,19,true,18,'WR'),player(spot-1,8,true,87,'TE'),player(spot-6,-5,true,22,'RB'));for(let i=0;i<4;i++)defenders.push(player(spot+2,(i-1.5)*3,false,90+i,'DL'));for(let i=0;i<4;i++)defenders.push(player(spot+7,[-19,19,8,-6][i],false,20+i,'DB'));defenders.push(player(Math.min(97,spot+18),-8,false,31,'S'),player(Math.min(98,spot+23),10,false,32,'S'));playTime=0;flight=null;aim=null;drag=null;steer=0;diveUsed=false;diveTime=0;los.position.x=spot;first.position.x=lineToGain;dots.forEach(d=>d.visible=false);targetRing.visible=false;state='ready';drawPlayArt();updateUI();}
+function formatGameClock(seconds){
+  const wholeSeconds=Math.max(0,Math.ceil(seconds));
+  return Math.floor(wholeSeconds/60)+':'+String(wholeSeconds%60).padStart(2,'0');
+}
+function updateClock(){
+  const clock=$('clock');
+  const label=(overtime?'OT':'Q'+quarter)+' · '+formatGameClock(time);
+  if(clock.textContent!==label)clock.textContent=label;
+}
 function updateUI(){
+  updateClock();
   $('controls').hidden=!document.body.classList.contains('playing')||['defense','return','over'].includes(state);
   $('yard').hidden=['defense','return'].includes(state);
-$('homeName').textContent=teams[+$('homeTeam').value][1];$('awayName').textContent=teams[+$('awayTeam').value][1];$('homeDot').style.background=teams[+$('homeTeam').value][2];$('awayDot').style.background=teams[+$('awayTeam').value][2];$('homeScore').textContent=homeScore;$('awayScore').textContent=awayScore;$('clock').textContent=`${overtime?'OT':'Q'+quarter} · ${Math.floor(time/60)}:${String(Math.ceil(time%60)).padStart(2,'0')}`;$('down').textContent=['defense','return'].includes(state)?'OPP BALL':`${['','1ST','2ND','3RD','4TH'][down]} & ${lineToGain===100?'GOAL':Math.max(1,Math.ceil(lineToGain-spot))}`;$('yard').textContent=spot<=50?`OWN ${Math.round(spot)}`:`OPP ${Math.round(100-spot)}`;$('phase').textContent={ready:'PRE-SNAP',live:'FIND YOUR RECEIVER',flight:'BALL IN THE AIR',run:'GO. GO. GO.',dead:'PLAY COMPLETE',menu:'EXHIBITION',defense:'ON DEFENSE',return:'INTERCEPTION RETURN'}[state]||'FINAL';$('snap').hidden=state!=='ready'&&state!=='dead'&&state!=='return';$('snap').textContent=state==='dead'?'NEXT PLAY':'SNAP BALL';$('route').hidden=state!=='ready';$('route').textContent='ROUTE: '+routeNames[route];$('kick').hidden=state!=='ready'||spot<55;$('punt').hidden=state!=='ready';$('run').hidden=state!=='ready'&&state!=='live';$('handoff').hidden=state!=='ready'&&state!=='live';$('dive').hidden=state!=='run';$('hint').textContent=state==='run'?'↑ / ↓ or swipe to steer · SPACE to dive':state==='flight'?'Receiver tracking the ball':state==='dead'?'Choose NEXT PLAY to return to the huddle':'Drag the QB toward a receiver · release to pass';}
+$('homeName').textContent=teams[+$('homeTeam').value][1];$('awayName').textContent=teams[+$('awayTeam').value][1];$('homeDot').style.background=teams[+$('homeTeam').value][2];$('awayDot').style.background=teams[+$('awayTeam').value][2];$('homeScore').textContent=homeScore;$('awayScore').textContent=awayScore;$('down').textContent=['defense','return'].includes(state)?'OPP BALL':`${['','1ST','2ND','3RD','4TH'][down]} & ${lineToGain===100?'GOAL':Math.max(1,Math.ceil(lineToGain-spot))}`;$('yard').textContent=spot<=50?`OWN ${Math.round(spot)}`:`OPP ${Math.round(100-spot)}`;$('phase').textContent={ready:'PRE-SNAP',live:'FIND YOUR RECEIVER',flight:'BALL IN THE AIR',run:'GO. GO. GO.',dead:'PLAY COMPLETE',menu:'EXHIBITION',defense:'ON DEFENSE',return:'INTERCEPTION RETURN'}[state]||'FINAL';$('snap').hidden=state!=='ready'&&state!=='dead'&&state!=='return';$('snap').textContent=state==='dead'?'NEXT PLAY':'SNAP BALL';$('route').hidden=state!=='ready';$('route').textContent='ROUTE: '+routeNames[route];$('kick').hidden=state!=='ready'||spot<55;$('punt').hidden=state!=='ready';$('run').hidden=state!=='ready'&&state!=='live';$('handoff').hidden=state!=='ready'&&state!=='live';$('dive').hidden=state!=='run';$('hint').textContent=state==='run'?'↑ / ↓ or swipe to steer · SPACE to dive':state==='flight'?'Receiver tracking the ball':state==='dead'?'Choose NEXT PLAY to return to the huddle':'Drag the QB toward a receiver · release to pass';}
 function snap(){if(state!=='ready')return;saveMatch();state='live';beep(280);updateUI();}
 function run(rb=false){if(paused||!['ready','live'].includes(state))return;if(state==='ready')snap();carrier=rb?receivers[3]:qb;state='run';drag=null;aim=null;dots.forEach(d=>d.visible=false);targetRing.visible=false;toast(carrier.name?(rb?'Handoff to ':'QB keeper · ')+carrier.name:rb?'Handoff':'Quarterback keeper');updateUI();}
 function dive(){if(state==='run'&&!diveUsed&&!paused){diveTime=.6;diveUsed=true;beep(180);}}
@@ -851,6 +861,7 @@ function advancePass(dt){
   if(bigCatch)cheerCrowd(false);
   toast(catcher.name?'CAUGHT · '+catcher.name:'CAUGHT · TAKE IT HOME');
   beep(740);
+  updateUI();
 }
 
 let returnLane=0;
@@ -916,7 +927,6 @@ function simulateInterceptionReturn(dt){
       return;
     }
   }
-  updateUI();
 }
 
 function recordStride(player,distance){
@@ -996,7 +1006,7 @@ for(let i=0;i<defenders.length;i++){const p=defenders[i];let target=carrier,s=sp
   s=speed;
 }}if(state==='flight'&&flight.aimedDefender===p){target=flight.to;s=speed;}else if(i<4&&playTime<2.6){target={x:spot+1,z:p.startZ};s=1;}else if(i<4&&state!=='run')s=speed*.75;move(p,target.x,target.z,s,dt);if((state==='run'||state==='live')&&Math.hypot(p.x-carrier.x,p.z-carrier.z)<1.1&&playTime>.8){endPlay(state==='live'?'SACK':'TACKLED');return;}}
 if(state==='flight')advancePass(dt);
-if(playTime>16&&state==='live')endPlay('SACK');updateUI();}
+if(playTime>16&&state==='live')endPlay('SACK');}
 const fieldTags=['QB','WR 1','WR 2','TE','RB'].map(position=>{
   const tag=document.createElement('span');
   tag.className=position==='QB'?'field-tag field-tag-qb':'field-tag';
@@ -1035,6 +1045,7 @@ function frame(now){
     for(const player of players)player.isMoving=false;
     if(state==='return')simulateInterceptionReturn(dt);
     else simulate(dt);
+    updateClock();
   }
   if(!paused&&cheerTime>0){
     cheerTime-=dt;

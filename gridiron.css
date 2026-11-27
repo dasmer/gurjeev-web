@@ -101,6 +101,7 @@ body.playing #playInfo { top: 72px; padding: 6px 12px; background: #101b14; }
 #defenseCall[data-outcome="stop"] { background: #173e38; border-color: #79e5b7; }
 #defenseCall[data-outcome="score"] { background: #592a28; border-color: #ff9686; }
 #defenseSpeed {
+  min-height: 44px;
   position: absolute;
   bottom: max(18px, env(safe-area-inset-bottom));
   right: 16px;
@@ -244,7 +245,7 @@ body.playing #gameHud > header {
 body.playing .brand { grid-area: 1 / 1; justify-self: start; font-size: 20px; }
 body.playing .top-actions { grid-area: 1 / 3; justify-self: end; gap: 4px; }
 body.playing .top-actions button {
-  min-height: 38px;
+  min-height: 44px;
   padding: 4px 7px;
   font-size: 10px;
   letter-spacing: 0;

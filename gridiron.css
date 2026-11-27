@@ -312,3 +312,13 @@ body.playing #crowdCheer { position: absolute; bottom: 7px; }
   body.playing #controls .hint { display: none; }
   body.playing .field-tag { font-size: 9px; padding: 1px 3px; }
 }
+
+#fullscreenHelp {
+  width: min(430px, calc(100% - 32px));
+  padding: 18px;
+  border: 2px solid #7babc4;
+  color: #f4f9fb;
+  background: #10283a;
+}
+#fullscreenHelp::backdrop { background: #08141ed9; }
+#fullscreenHelp p { font-size: 13px; line-height: 1.5; }

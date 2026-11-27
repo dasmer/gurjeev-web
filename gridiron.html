@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#091923"><title>RetroDash • Gurjeev's Games</title><link rel="stylesheet" href="gridiron.css?v=fullscreen-5"></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#091923"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="manifest" href="retrodash.webmanifest"><link rel="apple-touch-icon" href="assets/retrodash-icon-192.png"><title>RetroDash • Gurjeev's Games</title><link rel="stylesheet" href="gridiron.css?v=fullscreen-app-6"></head><body>
 <div id="gameHud"><header><a href="index.html" class="brand">G<span>G</span> <small>RETRODASH</small></a><div class="top-actions"><button id="sound" aria-label="Toggle sound">SOUND OFF</button><button id="fullscreen" type="button" aria-label="Enter fullscreen" title="Enter fullscreen" hidden>⛶</button><button id="pause">PAUSE</button></div></header>
 <div id="scoreboard" hidden><div class="club"><i id="homeDot"></i><img id="homeLogo" class="score-logo" alt=""><span id="homeName">NYG</span><strong id="homeScore">0</strong></div><div class="clock"><b id="clock">Q1 · 1:30</b><small id="down">1ST & 10</small></div><div class="club"><strong id="awayScore">0</strong><span id="awayName">DAL</span><img id="awayLogo" class="score-logo" alt=""><i id="awayDot"></i></div></div>
 <div id="playInfo" hidden><span id="seasonHud" hidden></span><span id="venueHud"></span><span id="phase">PRE-SNAP</span><b id="yard">OWN 25</b></div>
@@ -19,6 +19,12 @@
   <button id="defenseSpeed" type="button" aria-pressed="false">FAST FORWARD <span aria-hidden="true">»</span></button>
 </section>
 <section id="overlay"  class="modal" hidden><div><span class="eyebrow">RETRODASH</span><h2 id="overlayTitle">Paused</h2><p id="overlayText"></p><button id="resume" class="primary">RESUME</button><button id="nextGame" class="primary" hidden>NEXT GAME</button><button id="resultBracket" type="button" hidden>PLAYOFF BRACKET</button><button id="restart">MAIN MENU</button></div></section>
+<dialog id="fullscreenHelp" aria-labelledby="fullscreenTitle">
+  <h2 id="fullscreenTitle">Play in fullscreen</h2>
+  <p>On iPhone, open RetroDash in Safari. Tap Share, then Add to Home Screen. Turn on Open as Web App if you see that option. Launch RetroDash from its new Home Screen icon.</p>
+  <p>Your browser save may be separate from the Home Screen app.</p>
+  <form method="dialog"><button type="submit">CLOSE</button></form>
+</dialog>
 <dialog id="bracketDialog" aria-labelledby="bracketTitle">
   <div class="bracket-header">
     <div><h2 id="bracketTitle">Playoff bracket</h2><p id="bracketStatus"></p></div>
@@ -28,4 +34,4 @@
     <div id="bracketGrid"></div>
   </div>
 </dialog>
-<script type="module" src="gridiron.js?v=fullscreen-5"></script></body></html>
+<script type="module" src="gridiron.js?v=fullscreen-app-6"></script></body></html>

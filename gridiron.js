@@ -379,23 +379,36 @@ function formation(){for(const p of players){
   playerGroup.remove(p.root);
 }players=[];receivers=[];defenders=[];blockers=[];qb=player(spot-5,0,true,12,'QB');carrier=qb;for(let i=0;i<5;i++)blockers.push(player(spot-.7,(i-2)*2,true,60+i,'OL'));receivers.push(player(spot-1,-19,true,11,'WR'),player(spot-1,19,true,18,'WR'),player(spot-1,8,true,87,'TE'),player(spot-6,-5,true,22,'RB'));for(let i=0;i<4;i++)defenders.push(player(spot+2,(i-1.5)*3,false,90+i,'DL'));for(let i=0;i<4;i++)defenders.push(player(spot+7,[-19,19,8,-6][i],false,20+i,'DB'));defenders.push(player(Math.min(97,spot+18),-8,false,31,'S'),player(Math.min(98,spot+23),10,false,32,'S'));playTime=0;flight=null;aim=null;drag=null;steer=0;diveUsed=false;diveTime=0;los.position.x=spot;first.position.x=lineToGain;dots.forEach(d=>d.visible=false);targetRing.visible=false;state='ready';drawPlayArt();updateUI();}
 const fullScreenButton=$('fullscreen');
-if(document.fullscreenEnabled&&document.documentElement.requestFullscreen){
-  fullScreenButton.hidden=false;
+const standalone=matchMedia('(display-mode: standalone)');
+const fullscreenMode=matchMedia('(display-mode: fullscreen)');
+function launchedAsApp(){
+  return !document.fullscreenElement&&(navigator.standalone||standalone.matches||fullscreenMode.matches);
 }
-fullScreenButton.addEventListener('click',async()=>{
-  try{
-    if(document.fullscreenElement)await document.exitFullscreen();
-    else await document.documentElement.requestFullscreen();
-  }catch(error){
-    toast('Fullscreen unavailable');
-  }
-});
-document.addEventListener('fullscreenchange',()=>{
+function refreshFullscreenButton(){
+  fullScreenButton.hidden=launchedAsApp();
   const label=document.fullscreenElement?'Exit fullscreen':'Enter fullscreen';
   fullScreenButton.setAttribute('aria-label',label);
   fullScreenButton.title=label;
+}
+function showFullscreenHelp(){
+  // Keep the match paused while the player reads the install instructions.
+  if(!paused&&state!=='menu'&&state!=='over')pause();
+  $('fullscreenHelp').showModal();
+}
+refreshFullscreenButton();
+fullScreenButton.addEventListener('click',async()=>{
+  try{
+    if(document.fullscreenElement)await document.exitFullscreen();
+    else if(document.fullscreenEnabled&&document.documentElement.requestFullscreen){
+      await document.documentElement.requestFullscreen();
+    }else showFullscreenHelp();
+  }catch{
+    showFullscreenHelp();
+  }
 });
-
+document.addEventListener('fullscreenchange',refreshFullscreenButton);
+standalone.addEventListener('change',refreshFullscreenButton);
+fullscreenMode.addEventListener('change',refreshFullscreenButton);
 function formatGameClock(seconds){
   const wholeSeconds=Math.max(0,Math.ceil(seconds));
   return Math.floor(wholeSeconds/60)+':'+String(wholeSeconds%60).padStart(2,'0');
@@ -831,7 +844,7 @@ $('game').addEventListener('pointerdown',e=>{if(paused||drag||e.button!==0)retur
 $('game').addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId||paused)return;if(drag.run)steer=THREE.MathUtils.clamp((e.clientY-drag.y)/65,-1,1);else aimAt(e);});
 $('game').addEventListener('pointerup',e=>{if(!drag||drag.id!==e.pointerId)return;if(drag.run){steer=0;drag=null;return;}const distance=Math.hypot(e.clientX-drag.x,e.clientY-drag.y);const intended=distance>=10?aimAt(e):null;drag=null;if(state!=='live'||paused)return;if(!aim||distance<10){aim=null;dots.forEach(d=>d.visible=false);targetRing.visible=false;return;}if(aim.x<qb.x){run();return;}flight=createPass(aim,intended);state='flight';matchStats.passes++;aim=null;dots.forEach(d=>d.visible=false);beep(520);updateUI();});
 $('game').addEventListener('pointercancel',()=>{drag=null;aim=null;steer=0;dots.forEach(d=>d.visible=false);targetRing.visible=false;});
-const keys=new Set();window.addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','Space'].includes(e.code))e.preventDefault();if(e.repeat)return;keys.add(e.code);if(e.code==='Escape')pause();if(paused)return;if(e.code==='Space'){if(state==='ready')snap();else if(state==='dead')formation();else dive();}if(e.code==='KeyR')run();if(e.code==='KeyH')run(true);});window.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',()=>{keys.clear();if(!paused&&state!=='menu'&&state!=='over')pause();});document.addEventListener('visibilitychange',()=>{if(!document.hidden)return;
+const keys=new Set();window.addEventListener('keydown',e=>{if(document.querySelector('dialog[open]'))return;if(['ArrowUp','ArrowDown','Space'].includes(e.code))e.preventDefault();if(e.repeat)return;keys.add(e.code);if(e.code==='Escape')pause();if(paused)return;if(e.code==='Space'){if(state==='ready')snap();else if(state==='dead')formation();else dive();}if(e.code==='KeyR')run();if(e.code==='KeyH')run(true);});window.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',()=>{keys.clear();if(!paused&&state!=='menu'&&state!=='over')pause();});document.addEventListener('visibilitychange',()=>{if(!document.hidden)return;
   checkpointOnExit();
   if(!paused&&state!=='menu'&&state!=='over')pause();});
 function distanceToCatch(player, point){

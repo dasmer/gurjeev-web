@@ -1,0 +1,154 @@
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#091923;color:#fff;font-family:Arial,Helvetica,sans-serif}button,select,a{touch-action:manipulation}button,select{font:inherit}button{cursor:pointer;border:1px solid #ffffff30;background:#102936e8;color:#fff;border-radius:7px;padding:13px 17px;font-size:11px;font-weight:800;letter-spacing:1px}button:hover{background:#284959}button:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid #d8ff65;outline-offset:3px}[hidden]{display:none!important}#game{position:fixed;inset:0;width:100%;height:100%;touch-action:none}header{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:24px 32px;pointer-events:none}.brand,.top-actions{pointer-events:auto}.brand{text-decoration:none;color:white;font-weight:950;font-style:italic;font-size:29px;letter-spacing:-4px}.brand span{color:#d8ff65}.brand small{font-size:11px;font-style:normal;letter-spacing:3px;margin-left:18px}.top-actions{display:flex;gap:8px}.panel{position:absolute;left:5%;top:110px;width:440px;max-height:calc(100dvh - 130px);overflow:auto;padding:28px;background:linear-gradient(135deg,#091923f5,#102b35e8);border:1px solid #ffffff22;border-radius:16px;box-shadow:0 25px 100px #0005;backdrop-filter:blur(16px)}.eyebrow{font-size:10px;font-weight:800;letter-spacing:3px;color:#d8ff65}h1{font-size:53px;line-height:.98;letter-spacing:-3px;margin:22px 0}h1 em{font-style:normal;color:#d8ff65}.intro{font-size:13px;line-height:1.7;color:#b9cbd3}.selectors{display:flex;gap:12px;margin:18px 0}.selectors label{width:50%;font-size:9px;font-weight:bold;letter-spacing:1.5px;color:#a1b8c3}select{display:block;width:100%;margin-top:8px;padding:12px 8px;background:#183442;border:1px solid #ffffff20;border-radius:5px;color:white;font-size:12px}.primary{background:#d8ff65;color:#13211b;border:0;font-weight:900}.primary:hover{background:#e8ffab}#start{width:100%;padding:18px;text-align:left}#start span{float:right}.instructions{display:grid;gap:14px;margin:24px 0}.instructions div{display:flex;gap:12px;font-size:11px;line-height:1.5}.instructions b{min-width:100px;color:#d8ff65}.instructions span{color:#c5d3d9}details{font-size:11px;color:#adc1cb;line-height:1.7}summary{cursor:pointer}.credit{display:block;font-size:9px;color:#718d9b;margin-top:18px}#scoreboard{position:fixed;top:20px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:22px;background:#091923ed;border:1px solid #ffffff25;padding:14px 24px;border-radius:12px;box-shadow:0 10px 30px #0004}.club{display:flex;gap:12px;align-items:center;font-weight:800;font-size:14px}.club strong{font-size:32px}.club i{height:24px;width:5px;border-radius:2px;background:#28bdec}.clock{text-align:center;min-width:110px;font-size:12px}.clock small{display:block;color:#d8ff65;margin-top:8px;font-weight:800}#playInfo{position:fixed;top:100px;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:2px;display:flex;gap:16px;background:#091923bd;padding:10px 20px;border-radius:30px}#phase{color:#d8ff65}#controls{position:fixed;bottom:max(22px,env(safe-area-inset-bottom));left:16px;right:16px;text-align:center}.hint{font-size:12px;text-shadow:0 2px 8px black;margin-bottom:12px}.buttons{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.modal{position:fixed;inset:0;background:#04121ccb;display:grid;place-items:center;backdrop-filter:blur(12px)}.modal>div{width:min(420px,90%);background:#102a37;padding:32px;border:1px solid #ffffff20;border-radius:16px;text-align:center}.modal h2{font-size:36px}.modal p{line-height:1.6;color:#b9cbd3}.modal button{margin:5px}#toast{position:fixed;top:27%;left:50%;transform:translateX(-50%);font-size:clamp(18px,4vw,38px);font-weight:950;text-transform:uppercase;text-shadow:0 4px 15px #000;text-align:center;pointer-events:none;width:90%;color:#e8ff9b}body.playing .brand small{display:none}@media(max-width:700px){header{padding:14px 16px}.brand small{font-size:9px}.top-actions button{font-size:9px;padding:10px}.panel{left:16px;right:16px;top:76px;width:auto;max-width:440px;max-height:calc(100dvh - 90px);padding:24px}h1{font-size:43px}.intro{font-size:12px}#scoreboard{top:65px;gap:16px;padding:10px 17px;width:calc(100% - 32px);max-width:420px;justify-content:space-between}.club{gap:8px}.club strong{font-size:25px}#playInfo{top:140px;white-space:nowrap}.buttons{gap:5px}.buttons button{padding:12px 10px;font-size:9px}.hint{font-size:11px}#toast{top:32%}}@media(max-height:500px){.panel{top:65px;max-height:calc(100dvh - 75px)}header{padding:12px}#scoreboard{top:8px}#playInfo{top:80px}#controls{bottom:8px}.hint{margin-bottom:5px}}
+/* Retro arcade treatment: crisp silhouettes, square panels, and restrained UI. */
+html,body{font-family:'Courier New',monospace}button,select,.panel,.modal>div,#scoreboard,#playInfo{border-radius:0;box-shadow:none}button{border:2px solid #9db4b9}.primary{border-color:#d8ff65}.panel{background:#102531f5;backdrop-filter:none;border:3px solid #8ca5af}h1{font-size:46px;letter-spacing:-2px}.brand{font-style:normal}.club strong{font-family:'Courier New',monospace}#game{image-rendering:pixelated}.modal{backdrop-filter:none}.instructions b{min-width:110px}@media(max-width:700px){h1{font-size:37px}.panel{padding:20px}.instructions div{font-size:10px}}
+
+body.playing #scoreboard {
+  top: 0;
+  width: min(720px, calc(100% - 300px));
+  max-width: none;
+  justify-content: space-between;
+  border: 0;
+  border-bottom: 3px solid #a6bc8d;
+  background: #101b14;
+}
+body.playing #playInfo { top: 72px; background: #101b14; }
+@media (max-width: 700px) {
+  body.playing #scoreboard { top: 55px; width: calc(100% - 24px); }
+  body.playing #playInfo { top: 118px; }
+}
+@media (max-height: 500px) and (min-width: 701px) {
+  body.playing #playInfo { top: 64px; }
+}
+#controls .hint {
+  display: inline-block;
+  padding: 6px 9px;
+  background: #101b14;
+  color: #f5ffe5;
+}
+@media (max-width: 700px) {
+  body.playing #playInfo { top: 107px; padding: 4px 12px; }
+}
+
+.panel h1 {
+  color: #fff5cf;
+  text-shadow: 4px 4px #111a10;
+  font-weight: 900;
+  letter-spacing: -.08em;
+}
+.panel h1 em { color: #e3fa77; }
+#continueGame { width: 100%; text-align: left; padding: 15px; }
+#saveStatus { color: #bdcba5; font-size: 11px; line-height: 1.5; }
+.panel, .modal > div { background: #1b281d; border-color: #aabb85; }
+.panel select, .top-actions button, .buttons button:not(.primary) { background: #283927; }
+#dreamRoster { margin-bottom: 10px; }
+#dreamRoster h3 { margin: 10px 0 4px; color: #e3fa77; }
+#dreamRoster ul { margin: 0 0 10px; padding-left: 20px; }
+
+
+.mode-picker {
+  display: block;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 1.5px;
+  color: #bdcba5;
+}
+#divisionInfo, #seasonGames { font-size: 11px; line-height: 1.6; }
+#divisionInfo { color: #d7e8b5; }
+#seasonGames { padding-left: 23px; margin: 7px 0 15px; }
+#seasonHud { color: #ffe65c; text-transform: uppercase; }
+@media (max-width: 700px) {
+  #playInfo { gap: 7px; letter-spacing: .5px; }
+}
+
+.defense-view {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+.defense-caption {
+  position: absolute;
+  top: 53%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: max-content;
+  max-width: min(540px, calc(100% - 36px));
+  text-align: center;
+}
+.defense-caption-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 12px;
+  padding: 6px 12px;
+  background: #0d1d17;
+  color: #d8eed4;
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: .06em;
+}
+#defenseCall {
+  margin: 0;
+  padding: 10px 16px;
+  border-left: 4px solid #ffc774;
+  background: #593512;
+  color: #fff5de;
+  font-size: clamp(13px, 2vw, 21px);
+  font-weight: bold;
+  line-height: 1.35;
+  box-shadow: 3px 3px #152419;
+}
+#defenseCall[data-outcome="stop"] { background: #173e38; border-color: #79e5b7; }
+#defenseCall[data-outcome="score"] { background: #592a28; border-color: #ff9686; }
+#defenseSpeed {
+  position: absolute;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  right: 16px;
+  pointer-events: auto;
+}
+#defenseSpeed[aria-pressed="true"] { color: #ffe65c; border-color: #ffe65c; }
+
+#crowdCheer {
+  position: fixed;
+  z-index: 1;
+  bottom: max(110px, calc(env(safe-area-inset-bottom) + 95px));
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 7px 12px;
+  border: 2px solid #ffe65c;
+  background: #172214;
+  color: #ffe65c;
+  font-size: 11px;
+  font-weight: bold;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.modal { z-index: 2; }
+
+.field-tag {
+  position: fixed;
+  transform: translate(-50%, calc(-100% - var(--tag-lift, 9px)));
+  color: #fff;
+  background: #101f27;
+  border: 1px solid #73e5ff;
+  padding: 3px 5px;
+  font: bold 11px 'Courier New', monospace;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.field-tag-qb {
+  color: #182319;
+  background: #ffe65c;
+  border-color: #182319;
+}
+body:has(#overlay:not([hidden])) .field-tag { display: none; }
+
+.score-logo { width: 27px; height: 27px; object-fit: contain; }
+#venueHud { color: #e8efdd; white-space: nowrap; }
+#gameRecords, #botBracket { margin: 10px 0; }
+#gameRecords label { display: block; margin-top: 8px; }
+#recordsList, #botGames { padding-left: 20px; }
+@media (max-width: 700px) {
+  .score-logo { width: 20px; height: 20px; }
+  #playInfo { max-width: calc(100% - 20px); justify-content: center; flex-wrap: wrap; }
+}

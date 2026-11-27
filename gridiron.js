@@ -721,6 +721,7 @@ function enterMatch(){
   $('seasonHud').textContent=season?season.schedule[season.game].title:'';
   for(const id of ['scoreboard','playInfo','controls'])$(id).hidden=false;
   document.body.classList.add('playing');
+  resize();
   formation();
 }
 function start(){
@@ -797,7 +798,12 @@ teams.forEach((team,index)=>$('recordsTeam').add(new Option(team[0],index)));
 $('recordsTeam').onchange=renderRecords;
 refreshSaveMenu();
 function pause(){if(state==='menu'||state==='over')return;paused=!paused;drag=null;aim=null;dots.forEach(d=>d.visible=false);targetRing.visible=false;$('overlay').hidden=!paused;$('overlayTitle').textContent='TIME OUT';$('overlayText').textContent='Take a breath. Your next big play is waiting.';$('resume').hidden=false;}
-$('start').onclick=start;$('snap').onclick=()=>{if(paused)return;if(state==='dead')formation();else snap();};$('run').onclick=()=>run();$('handoff').onclick=()=>run(true);$('dive').onclick=dive;$('pause').onclick=pause;$('resume').onclick=pause;$('restart').onclick=()=>{checkpointOnExit();paused=false;state='menu';$('defenseView').hidden=true;$('crowdCheer').hidden=true;cheerTime=0;$('overlay').hidden=true;$('menu').hidden=false;for(const id of ['scoreboard','playInfo','controls'])$(id).hidden=true;document.body.classList.remove('playing');$('toast').textContent='';refreshSaveMenu();};$('route').onclick=()=>{if(state==='ready'&&!paused){route=(route+1)%3;drawPlayArt();saveMatch();updateUI();}};$('kick').onclick=()=>{if(state==='ready'&&!paused)endPlay(Math.random()<Math.max(.25,.95-(100-spot)/100)?'FIELD GOAL':'MISSED KICK');};$('punt').onclick=()=>{if(state==='ready'&&!paused)endPlay('PUNT');};$('sound').onclick=()=>{sound=!sound;$('sound').textContent=sound?'SOUND ON':'SOUND OFF';beep();};
+$('start').onclick=start;$('snap').onclick=()=>{if(paused)return;if(state==='dead')formation();else snap();};$('run').onclick=()=>run();$('handoff').onclick=()=>run(true);$('dive').onclick=dive;$('pause').onclick=pause;$('resume').onclick=pause;$('restart').onclick=()=>{checkpointOnExit();paused=false;state='menu';$('defenseView').hidden=true;$('crowdCheer').hidden=true;cheerTime=0;$('overlay').hidden=true;$('menu').hidden=false;for(const id of ['scoreboard','playInfo','controls'])$(id).hidden=true;document.body.classList.remove('playing');$('toast').textContent='';refreshSaveMenu();};$('route').onclick=()=>{if(state==='ready'&&!paused){route=(route+1)%3;drawPlayArt();saveMatch();updateUI();}};$('kick').onclick=()=>{if(state==='ready'&&!paused)endPlay(Math.random()<Math.max(.25,.95-(100-spot)/100)?'FIELD GOAL':'MISSED KICK');};$('punt').onclick=()=>{if(state==='ready'&&!paused)endPlay('PUNT');};function toggleSound(){
+  sound=!sound;
+  $('sound').textContent=$('pauseSound').textContent=sound?'SOUND ON':'SOUND OFF';
+  beep();
+}
+$('sound').onclick=$('pauseSound').onclick=toggleSound;
 const ray=new THREE.Raycaster(),ground=new THREE.Plane(new THREE.Vector3(0,1,0),0);function groundPoint(x,y){const rect=$('game').getBoundingClientRect();ray.setFromCamera(new THREE.Vector2((x-rect.left)/rect.width*2-1,-(y-rect.top)/rect.height*2+1),camera);return ray.ray.intersectPlane(ground,new THREE.Vector3());}
 function passDuration(p){return .65+Math.hypot(p.x-qb.x,p.z-qb.z)/38;}
 function screenPoint(p){
@@ -1046,6 +1052,7 @@ const fieldTags=['QB','WR 1','WR 2','TE','RB'].map(position=>{
 });
 
 let fieldBounds;
+const mobileFocus=matchMedia('(pointer: coarse), (max-width: 570px), (orientation: landscape) and (max-height: 560px)');
 const shortLandscape=matchMedia('(orientation: landscape) and (max-height: 560px)');
 function resize(){
   fieldBounds=$('game').getBoundingClientRect();
@@ -1053,7 +1060,9 @@ function resize(){
   if(!width||!height)return;
   renderer.setSize(width,height,false);
   const ratio=width/height;
-  const halfHeight=Math.max(shortLandscape.matches?27:29,22/ratio);
+  const focusMode=mobileFocus.matches&&document.body.classList.contains('playing');
+  // Leave room for the floating HUD, both sidelines and the end-zone markings.
+  const halfHeight=Math.max(focusMode?31:shortLandscape.matches?27:29,22/ratio);
   camera.left=-halfHeight*ratio;
   camera.right=halfHeight*ratio;
   camera.top=halfHeight;

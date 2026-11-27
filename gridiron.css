@@ -313,3 +313,62 @@ body.playing #crowdCheer { position: absolute; bottom: 7px; }
 }
 
 #fullscreenHint { color: #bdcba5; font-size: 11px; line-height: 1.5; }
+
+#pauseSound { display: none; }
+/* During mobile play the HUD floats over one full-screen stadium. */
+@media (pointer: coarse), (max-width: 570px), (orientation: landscape) and (max-height: 560px) {
+  body.playing #fieldStage {
+    position: fixed;
+    inset: 0;
+    grid-row: auto;
+  }
+  body.playing #gameHud {
+    position: fixed;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    right: 0;
+    grid-template-columns: 44px minmax(0,1fr) 44px;
+    background: transparent;
+    pointer-events: none;
+  }
+  body.playing .brand { display: none; }
+  body.playing .top-actions { grid-area: 1 / 3; }
+  body.playing #sound { display: none; }
+  #pauseSound { display: inline-block; }
+  body.playing #pause {
+    font-size: 0;
+    min-width: 44px;
+    background: #10281ddd;
+  }
+  body.playing #pause::after { content: "Ⅱ"; font-size: 18px; }
+  body.playing #scoreboard {
+    grid-area: 1 / 2;
+    width: max-content;
+    max-width: 100%;
+    justify-self: center;
+    gap: clamp(5px, 2vw, 14px);
+    border: 1px solid #c3dfa956;
+    border-radius: 6px;
+    background: #101b14e6;
+  }
+  body.playing #scoreboard .score-logo { display: none; }
+  body.playing #scoreboard .club strong { font-size: 18px; }
+  body.playing #playInfo,
+  body.playing #controls .hint { display: none; }
+  body.playing #controls {
+    position: fixed;
+    z-index: 1;
+    grid-row: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: transparent;
+    pointer-events: none;
+  }
+  body.playing .buttons { flex-wrap: wrap; }
+  body.playing .buttons button { pointer-events: auto; }
+  body.playing .buttons button:not(.primary) { background: #183328e8; }
+  body.playing #toast { top: max(60px, calc(env(safe-area-inset-top) + 48px)); }
+  body.playing #crowdCheer { bottom: max(56px, calc(env(safe-area-inset-bottom) + 50px)); }
+}

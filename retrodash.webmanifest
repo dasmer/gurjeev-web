@@ -2,7 +2,7 @@
   "id": "/gridiron.html",
   "name": "RetroDash",
   "short_name": "RetroDash",
-  "start_url": "./gridiron.html?v=fullscreen-app-6",
+  "start_url": "./gridiron.html?v=auto-fullscreen-7",
   "scope": "./",
   "display": "standalone",
   "display_override": ["fullscreen", "standalone"],

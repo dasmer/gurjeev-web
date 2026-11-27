@@ -378,37 +378,26 @@ function formation(){for(const p of players){
   for(const material of materials)material.dispose();
   playerGroup.remove(p.root);
 }players=[];receivers=[];defenders=[];blockers=[];qb=player(spot-5,0,true,12,'QB');carrier=qb;for(let i=0;i<5;i++)blockers.push(player(spot-.7,(i-2)*2,true,60+i,'OL'));receivers.push(player(spot-1,-19,true,11,'WR'),player(spot-1,19,true,18,'WR'),player(spot-1,8,true,87,'TE'),player(spot-6,-5,true,22,'RB'));for(let i=0;i<4;i++)defenders.push(player(spot+2,(i-1.5)*3,false,90+i,'DL'));for(let i=0;i<4;i++)defenders.push(player(spot+7,[-19,19,8,-6][i],false,20+i,'DB'));defenders.push(player(Math.min(97,spot+18),-8,false,31,'S'),player(Math.min(98,spot+23),10,false,32,'S'));playTime=0;flight=null;aim=null;drag=null;steer=0;diveUsed=false;diveTime=0;los.position.x=spot;first.position.x=lineToGain;dots.forEach(d=>d.visible=false);targetRing.visible=false;state='ready';drawPlayArt();updateUI();}
-const fullScreenButton=$('fullscreen');
-const standalone=matchMedia('(display-mode: standalone)');
-const fullscreenMode=matchMedia('(display-mode: fullscreen)');
-function launchedAsApp(){
-  return !document.fullscreenElement&&(navigator.standalone||standalone.matches||fullscreenMode.matches);
-}
-function refreshFullscreenButton(){
-  fullScreenButton.hidden=launchedAsApp();
-  const label=document.fullscreenElement?'Exit fullscreen':'Enter fullscreen';
-  fullScreenButton.setAttribute('aria-label',label);
-  fullScreenButton.title=label;
-}
-function showFullscreenHelp(){
-  // Keep the match paused while the player reads the install instructions.
-  if(!paused&&state!=='menu'&&state!=='over')pause();
-  $('fullscreenHelp').showModal();
-}
-refreshFullscreenButton();
-fullScreenButton.addEventListener('click',async()=>{
-  try{
-    if(document.fullscreenElement)await document.exitFullscreen();
-    else if(document.fullscreenEnabled&&document.documentElement.requestFullscreen){
-      await document.documentElement.requestFullscreen();
-    }else showFullscreenHelp();
-  }catch{
-    showFullscreenHelp();
+const phoneSize=matchMedia('(max-width: 570px), (max-height: 560px) and (orientation: landscape)');
+const coarsePointer=matchMedia('(pointer: coarse)');
+const fullscreenHint=$('fullscreenHint');
+const appleMobile=/iPhone|iPad|iPod/.test(navigator.userAgent)||
+  (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+
+function enterMobileFullscreen(){
+  const mobile=phoneSize.matches||coarsePointer.matches||appleMobile;
+  const appWindow=navigator.standalone||matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
+  if(!mobile||appWindow||document.fullscreenElement)return;
+  const root=document.documentElement;
+  if(document.fullscreenEnabled&&root.requestFullscreen){
+    // Invoke during the Start or Continue tap to retain browser user activation.
+    root.requestFullscreen().catch(()=>{if(appleMobile)fullscreenHint.hidden=false;});
   }
-});
-document.addEventListener('fullscreenchange',refreshFullscreenButton);
-standalone.addEventListener('change',refreshFullscreenButton);
-fullscreenMode.addEventListener('change',refreshFullscreenButton);
+}
+if(appleMobile&&!navigator.standalone&&!matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches){
+  fullscreenHint.hidden=false;
+}
+
 function formatGameClock(seconds){
   const wholeSeconds=Math.max(0,Math.ceil(seconds));
   return Math.floor(wholeSeconds/60)+':'+String(wholeSeconds%60).padStart(2,'0');
@@ -738,6 +727,7 @@ function start(){
   const activeSave=savedMatch&&(savedMatch.stage!=='over'||
     (savedMatch.season&&!seasonStatus(savedMatch.season).ending));
   if(activeSave&&!window.confirm('Replace your current RetroDash save?'))return;
+  enterMobileFullscreen();
   season=$('gameMode').value==='season'?makeSeason(teams[Number($('homeTeam').value)][1]):null;
   if(!season&&$('homeTeam').value===$('awayTeam').value){
     $('awayTeam').value=(+$('homeTeam').value+1)%teams.length;
@@ -766,6 +756,7 @@ function startGame(){
 }
 function continueMatch(){
   if(!savedMatch)return;
+  enterMobileFullscreen();
   const data=savedMatch;
   season=data.season??null;
   matchId=data.matchId??['legacy',data.home,data.away,season?.game??'exhibition',data.homeScore,data.awayScore].join(':');

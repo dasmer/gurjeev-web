@@ -86,7 +86,7 @@ let renderer;try{renderer=new THREE.WebGLRenderer({canvas:$('game'),antialias:fa
 renderer.setPixelRatio(.9);renderer.shadowMap.enabled=false;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.96;
 const scene=new THREE.Scene();scene.background=new THREE.Color('#8faeb9');scene.fog=new THREE.Fog('#8faeb9',115,250);const camera=new THREE.OrthographicCamera(-50,50,32,-32,.1,350);scene.add(new THREE.HemisphereLight('#e5f5ff','#39523c',2.2));const sun=new THREE.DirectionalLight('#ffedd3',3.2);sun.position.set(-25,65,35);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-80,right:80,top:60,bottom:-60,far:160});sun.shadow.bias=-.0005;scene.add(sun);
 const mat=c=>new THREE.MeshStandardMaterial({color:c,roughness:.75});const white=mat('#f5f5e7'),metal=mat('#d0dae0');const boxGeo=new THREE.BoxGeometry(1,1,1);function box(w,h,d,x,y,z,m,parent=scene){const o=new THREE.Mesh(boxGeo,m);o.scale.set(w,h,d);o.position.set(x,y,z);o.receiveShadow=true;parent.add(o);return o;}
-box(150,1,88,50,-.65,0,mat('#385552'));box(120,.2,53.3,50,-.1,0,mat('#307746'));
+box(360,1,130,50,-.65,0,mat('#385552'));box(120,.2,53.3,50,-.1,0,mat('#307746'));
 for(let x=0;x<100;x+=5)box(5,.025,53.3,x+2.5,.012,0,mat(x%10?'#3d6e30':'#437638'));
 const endZones=[-5,105].map(x=>box(10,.06,53.3,x,.02,0,uniformMaterial('#153d60')));
 for(const z of [-26.65,26.65])box(120,.05,.25,50,.06,z,white);
@@ -94,6 +94,13 @@ for(let x=0;x<=100;x+=5){box(.14,.04,53.3,x,.06,0,white);if(x%10)continue;for(co
 for(let x=1;x<100;x++)for(const z of [-3,3,-25,25])box(.1,.03,.65,x,.06,z,white);
 function label(text,x,z,w,h,color='#f2f5e8'){const c=document.createElement('canvas');c.width=/^\d+$/.test(text)?192:512;c.height=128;const ctx=c.getContext('2d');ctx.fillStyle=color;ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='900 85px Arial';ctx.fillText(text,c.width/2,64);const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;const p=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false}));p.rotation.x=-Math.PI/2;p.position.set(x,.1,z);scene.add(p);return p;}
 // Shield asset from the NFL's teams page. Keep the game branding in the end zones.
+// Seating behind the end zones keeps wide landscape views inside the stadium.
+for(const side of [-1,1]){
+  for(let row=0;row<5;row++){
+    const x=50+side*(65+row*3.2);
+    box(3.2,1+row*.45,64,x,.5+row*.2,0,mat(row%2?'#314957':'#263e4b'));
+  }
+}
 const shieldTexture=new THREE.TextureLoader().load('./assets/nfl-shield.png');
 shieldTexture.colorSpace=THREE.SRGBColorSpace;
 shieldTexture.magFilter=THREE.NearestFilter;
@@ -371,6 +378,24 @@ function formation(){for(const p of players){
   for(const material of materials)material.dispose();
   playerGroup.remove(p.root);
 }players=[];receivers=[];defenders=[];blockers=[];qb=player(spot-5,0,true,12,'QB');carrier=qb;for(let i=0;i<5;i++)blockers.push(player(spot-.7,(i-2)*2,true,60+i,'OL'));receivers.push(player(spot-1,-19,true,11,'WR'),player(spot-1,19,true,18,'WR'),player(spot-1,8,true,87,'TE'),player(spot-6,-5,true,22,'RB'));for(let i=0;i<4;i++)defenders.push(player(spot+2,(i-1.5)*3,false,90+i,'DL'));for(let i=0;i<4;i++)defenders.push(player(spot+7,[-19,19,8,-6][i],false,20+i,'DB'));defenders.push(player(Math.min(97,spot+18),-8,false,31,'S'),player(Math.min(98,spot+23),10,false,32,'S'));playTime=0;flight=null;aim=null;drag=null;steer=0;diveUsed=false;diveTime=0;los.position.x=spot;first.position.x=lineToGain;dots.forEach(d=>d.visible=false);targetRing.visible=false;state='ready';drawPlayArt();updateUI();}
+const fullScreenButton=$('fullscreen');
+if(document.fullscreenEnabled&&document.documentElement.requestFullscreen){
+  fullScreenButton.hidden=false;
+}
+fullScreenButton.addEventListener('click',async()=>{
+  try{
+    if(document.fullscreenElement)await document.exitFullscreen();
+    else await document.documentElement.requestFullscreen();
+  }catch(error){
+    toast('Fullscreen unavailable');
+  }
+});
+document.addEventListener('fullscreenchange',()=>{
+  const label=document.fullscreenElement?'Exit fullscreen':'Enter fullscreen';
+  fullScreenButton.setAttribute('aria-label',label);
+  fullScreenButton.title=label;
+});
+
 function formatGameClock(seconds){
   const wholeSeconds=Math.max(0,Math.ceil(seconds));
   return Math.floor(wholeSeconds/60)+':'+String(wholeSeconds%60).padStart(2,'0');
@@ -1017,13 +1042,14 @@ const fieldTags=['QB','WR 1','WR 2','TE','RB'].map(position=>{
 });
 
 let fieldBounds;
+const shortLandscape=matchMedia('(orientation: landscape) and (max-height: 560px)');
 function resize(){
   fieldBounds=$('game').getBoundingClientRect();
   const {width,height}=fieldBounds;
   if(!width||!height)return;
   renderer.setSize(width,height,false);
   const ratio=width/height;
-  const halfHeight=Math.max(29,22/ratio);
+  const halfHeight=Math.max(shortLandscape.matches?27:29,22/ratio);
   camera.left=-halfHeight*ratio;
   camera.right=halfHeight*ratio;
   camera.top=halfHeight;
@@ -1109,7 +1135,7 @@ function frame(now){
     tag.hidden=promptOpen||!show;
     if(tag.hidden)return;
     const lastName=player.name?.split(' ').at(-1);
-    const label=lastName?'#'+player.number+' '+lastName:tag.dataset.position;
+    const label=lastName?(shortLandscape.matches?lastName:'#'+player.number+' '+lastName):tag.dataset.position;
     if(tag.textContent!==label)tag.textContent=label;
     const position=screenPoint(player);
     if(position.x<fieldBounds.left||position.x>fieldBounds.right||

@@ -372,3 +372,22 @@ body.playing #crowdCheer { position: absolute; bottom: 7px; }
   body.playing #toast { top: max(60px, calc(env(safe-area-inset-top) + 48px)); }
   body.playing #crowdCheer { bottom: max(56px, calc(env(safe-area-inset-bottom) + 50px)); }
 }
+
+body:not(.playing) #gameHud > header { z-index: 1; }
+body.playing #settings,
+#resume[hidden] ~ #pauseSettings { display: none; }
+
+#settingsDialog {
+  width: min(320px, calc(100% - 32px));
+  max-height: calc(100dvh - 24px);
+  padding: 20px;
+  border: 2px solid #aabf91;
+  background: #101b14;
+  color: #f5f5e7;
+}
+#settingsDialog::backdrop { background: #08141ed9; }
+#settingsDialog h2 { margin: 0 0 16px; font-size: 23px; }
+#settingsDialog label { color: #d8ff65; font-weight: 800; }
+#settingsDialog select { background: #283927; font-size: 16px; min-height: 44px; }
+#settingsDialog form { margin-top: 14px; text-align: right; }
+#settingsDialog button { min-height: 44px; }

@@ -2,7 +2,7 @@
   "id": "/gridiron.html",
   "name": "RetroDash",
   "short_name": "RetroDash",
-  "start_url": "./gridiron.html?v=mobile-focus-8",
+  "start_url": "./gridiron.html?v=drive-direction-9",
   "scope": "./",
   "display": "standalone",
   "display_override": ["fullscreen", "standalone"],

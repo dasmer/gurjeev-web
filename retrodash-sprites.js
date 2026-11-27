@@ -110,10 +110,10 @@ export function attachPlayerSprite(root){
   return sprite;
 }
 
-export function showPlayerSprite(player,pose,striding){
+export function showPlayerSprite(player,pose,striding,viewSign){
   if(!source)return;
   const {sprite,spriteColors:colors}=player;
-  const facing=Math.cos(player.root.rotation.y)<0;
+  const facing=Math.cos(player.root.rotation.y)*viewSign<0;
   const runFrame=striding&&runCycle
     ? Math.floor((player.strideDistance??0)/yardsPerRunFrame)%runCycle.length
     : -1;

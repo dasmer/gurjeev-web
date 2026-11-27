@@ -1,6 +1,6 @@
 import {renderPlayoffBracket} from './retrodash-bracket.js';
 import {findPassCatch} from './retrodash-passing.js';
-import {loadPlayerSprites,attachPlayerSprite,showPlayerSprite} from './retrodash-sprites.js';
+import {loadPlayerSprites,attachPlayerSprite,showPlayerSprite} from './retrodash-sprites.js?v=drive-direction-9';
 import * as THREE from './vendor/three.module.js';
 import {makeSeason,seasonStatus,preparePlayoffs,gameVenue} from './retrodash-season.js';
 import {startDefensiveDrive,simulateDefensivePlay} from './retrodash-defense.js';
@@ -88,11 +88,12 @@ const scene=new THREE.Scene();scene.background=new THREE.Color('#8faeb9');scene.
 const mat=c=>new THREE.MeshStandardMaterial({color:c,roughness:.75});const white=mat('#f5f5e7'),metal=mat('#d0dae0');const boxGeo=new THREE.BoxGeometry(1,1,1);function box(w,h,d,x,y,z,m,parent=scene){const o=new THREE.Mesh(boxGeo,m);o.scale.set(w,h,d);o.position.set(x,y,z);o.receiveShadow=true;parent.add(o);return o;}
 box(360,1,130,50,-.65,0,mat('#385552'));box(120,.2,53.3,50,-.1,0,mat('#307746'));
 for(let x=0;x<100;x+=5)box(5,.025,53.3,x+2.5,.012,0,mat(x%10?'#3d6e30':'#437638'));
+const fieldArt=[];
 const endZones=[-5,105].map(x=>box(10,.06,53.3,x,.02,0,uniformMaterial('#153d60')));
 for(const z of [-26.65,26.65])box(120,.05,.25,50,.06,z,white);
 for(let x=0;x<=100;x+=5){box(.14,.04,53.3,x,.06,0,white);if(x%10)continue;for(const z of [-19,19])label(String(x>50?100-x:x),x,z,7,4);}
 for(let x=1;x<100;x++)for(const z of [-3,3,-25,25])box(.1,.03,.65,x,.06,z,white);
-function label(text,x,z,w,h,color='#f2f5e8'){const c=document.createElement('canvas');c.width=/^\d+$/.test(text)?192:512;c.height=128;const ctx=c.getContext('2d');ctx.fillStyle=color;ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='900 85px Arial';ctx.fillText(text,c.width/2,64);const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;const p=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false}));p.rotation.x=-Math.PI/2;p.position.set(x,.1,z);scene.add(p);return p;}
+function label(text,x,z,w,h,color='#f2f5e8'){const c=document.createElement('canvas');c.width=/^\d+$/.test(text)?192:512;c.height=128;const ctx=c.getContext('2d');ctx.fillStyle=color;ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='900 85px Arial';ctx.fillText(text,c.width/2,64);const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;const p=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false}));p.rotation.x=-Math.PI/2;p.position.set(x,.1,z);scene.add(p);fieldArt.push(p);return p;}
 // Shield asset from the NFL's teams page. Keep the game branding in the end zones.
 // Seating behind the end zones keeps wide landscape views inside the stadium.
 for(const side of [-1,1]){
@@ -111,6 +112,7 @@ const midfieldShield=new THREE.Mesh(
 midfieldShield.rotation.x=-Math.PI/2;
 midfieldShield.position.set(50,.1,0);
 scene.add(midfieldShield);
+fieldArt.push(midfieldShield);
 const endZoneNames=[-5,105].map(x=>{
   const mark=label('RETRODASH',x,0,32,6);
   mark.rotation.z=Math.PI/2;
@@ -330,7 +332,7 @@ function drawCarriedBall(){
   carriedBall.position.addScaledVector(carryUp,tuck.y);
   // Draw just in front of the chest without shifting its screen position.
   carriedBall.position.addScaledVector(carryForward,1.3);
-  carriedBall.material.rotation=direction*.45;
+  carriedBall.material.rotation=direction*driveViewSign*.45;
   ball.visible=false;
 }
 const dots=[];for(let i=0;i<24;i++){const d=new THREE.Mesh(new THREE.SphereGeometry(.12,6,4),new THREE.MeshBasicMaterial({color:'#efffa8'}));scene.add(d);d.visible=false;dots.push(d);}const targetRing=new THREE.Mesh(new THREE.RingGeometry(1.1,1.3,32),new THREE.MeshBasicMaterial({color:'#dcff72',side:THREE.DoubleSide}));targetRing.rotation.x=-Math.PI/2;scene.add(targetRing);targetRing.visible=false;
@@ -804,6 +806,25 @@ $('start').onclick=start;$('snap').onclick=()=>{if(paused)return;if(state==='dea
   beep();
 }
 $('sound').onclick=$('pauseSound').onclick=toggleSound;
+
+const driveDirectionKey='retrodash.drive-direction';
+const driveDirection=$('driveDirection');
+const fieldArtAngles=fieldArt.map(mesh=>[mesh,mesh.rotation.z]);
+let driveViewSign=1;
+function applyDriveDirection(){
+  driveViewSign=driveDirection.value==='left'?-1:1;
+  const turn=driveViewSign<0?Math.PI:0;
+  for(const [mesh,angle] of fieldArtAngles)mesh.rotation.z=angle+turn;
+}
+try{
+  if(localStorage.getItem(driveDirectionKey)==='left')driveDirection.value='left';
+}catch{}
+applyDriveDirection();
+driveDirection.onchange=()=>{
+  applyDriveDirection();
+  try{localStorage.setItem(driveDirectionKey,driveDirection.value);}catch{}
+};
+$('settings').onclick=$('pauseSettings').onclick=()=>$('settingsDialog').showModal();
 const ray=new THREE.Raycaster(),ground=new THREE.Plane(new THREE.Vector3(0,1,0),0);function groundPoint(x,y){const rect=$('game').getBoundingClientRect();ray.setFromCamera(new THREE.Vector2((x-rect.left)/rect.width*2-1,-(y-rect.top)/rect.height*2+1),camera);return ray.ray.intersectPlane(ground,new THREE.Vector3());}
 function passDuration(p){return .65+Math.hypot(p.x-qb.x,p.z-qb.z)/38;}
 function screenPoint(p){
@@ -1034,7 +1055,7 @@ function simulate(dt){
     move(p,destination.x,destination.z,6.5,dt);
   });
 for(let i=0;i<blockers.length;i++){const p=blockers[i];move(p,spot+.2,p.startZ,1,dt);}
-if(state==='run'){let steering=steer;if(keys.has('ArrowUp')||keys.has('KeyW'))steering=-1;if(keys.has('ArrowDown')||keys.has('KeyS'))steering=1;const forward=(diveTime>0?11:carrier===qb?5.8:7.2)*dt;const lateral=steering*8*dt;carrier.x+=forward;carrier.z+=lateral;recordStride(carrier,Math.hypot(forward,lateral));carrier.root.position.set(carrier.x,0,carrier.z);carrier.root.rotation.y=-Math.atan2(steering,1);carrier.limbs.forEach((l,i)=>l.rotation.z=Math.sign(Math.sin(playTime*8+(i===1||i===2?Math.PI:0)))*.38-(i%2?.35:0));carrier.body.rotation.z=diveTime>0?-.95:0;diveTime=Math.max(0,diveTime-dt);if(carrier.x>=100){endPlay('TOUCHDOWN');return;}if(Math.abs(carrier.z)>26){endPlay('OUT OF BOUNDS');return;}}
+if(state==='run'){let steering=steer;if(keys.has('ArrowUp')||keys.has('KeyW'))steering=-1;if(keys.has('ArrowDown')||keys.has('KeyS'))steering=1;steering*=driveViewSign;const forward=(diveTime>0?11:carrier===qb?5.8:7.2)*dt;const lateral=steering*8*dt;carrier.x+=forward;carrier.z+=lateral;recordStride(carrier,Math.hypot(forward,lateral));carrier.root.position.set(carrier.x,0,carrier.z);carrier.root.rotation.y=-Math.atan2(steering,1);carrier.limbs.forEach((l,i)=>l.rotation.z=Math.sign(Math.sin(playTime*8+(i===1||i===2?Math.PI:0)))*.38-(i%2?.35:0));carrier.body.rotation.z=diveTime>0?-.95:0;diveTime=Math.max(0,diveTime-dt);if(carrier.x>=100){endPlay('TOUCHDOWN');return;}if(Math.abs(carrier.z)>26){endPlay('OUT OF BOUNDS');return;}}
 for(let i=0;i<defenders.length;i++){const p=defenders[i];let target=carrier,s=speed;if(state!=='run'&&i>=4){target=receivers[(i-4)%4];s=speed*.85;if(state==='flight'&&(flight.aimedDefender===p||
     (flight.coverage.includes(p)&&flight.t*flight.duration>.3))){
   target=flight.to;
@@ -1122,7 +1143,7 @@ function frame(now){
   ball.visible=!onDefense;
   los.visible=!onDefense;
   first.visible=!onDefense;
-  camera.position.set(cameraFocus,90,47);
+  camera.position.set(cameraFocus,90,47*driveViewSign);
   camera.lookAt(cameraFocus,0,0);
   camera.updateMatrixWorld();
   playArt.visible=state==='ready';
@@ -1137,7 +1158,7 @@ function frame(now){
     const moving=player.isMoving&&['live','flight','run','return'].includes(state);
     const pose=catching?'catch':player===qb&&(beforeSnap||state==='live')?'pass':
       blocking?'block':moving?'run':'idle';
-    showPlayerSprite(player,pose,pose==='run');
+    showPlayerSprite(player,pose,pose==='run',driveViewSign);
   }
   const promptOpen=!$('overlay').hidden;
   fieldTags.forEach((tag,index)=>{

@@ -11,7 +11,7 @@ body.playing #scoreboard {
   border-bottom: 3px solid #a6bc8d;
   background: #101b14;
 }
-body.playing #playInfo { top: 72px; background: #101b14; }
+body.playing #playInfo { top: 72px; padding: 6px 12px; background: #101b14; }
 @media (max-width: 700px) {
   body.playing #scoreboard { top: 55px; width: calc(100% - 24px); }
   body.playing #playInfo { top: 118px; }
@@ -221,17 +221,20 @@ body:has(#overlay:not([hidden])) .field-tag { display: none; }
 .bracket-branch-afc::after { left: calc(100% + 14px); }
 .bracket-branch-nfc::after { right: calc(100% + 14px); }
 
-/* Give the scoreboard, field and controls separate space on phones. */
-@media (max-width: 700px), (max-height: 520px) {
+/* The HUD and controls never share the field's viewport. */
+body.playing {
+  --field-top: 104px;
+  --field-bottom: 112px;
+}
+body.playing #game {
+  inset: var(--field-top) 0 auto;
+  height: calc(100dvh - var(--field-top) - var(--field-bottom));
+}
+@media (max-width: 1024px), (max-height: 620px), (pointer: coarse) {
   body.playing {
     --hud-top: max(4px, env(safe-area-inset-top));
     --field-top: calc(var(--hud-top) + 70px);
     --field-bottom: calc(max(4px, env(safe-area-inset-bottom)) + 76px);
-  }
-  body.playing #game {
-    inset: var(--field-top) 0 auto;
-    width: 100%;
-    height: calc(100dvh - var(--field-top) - var(--field-bottom));
   }
   body.playing > header {
     top: var(--hud-top);

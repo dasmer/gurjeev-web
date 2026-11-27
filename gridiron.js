@@ -1005,7 +1005,7 @@ const fieldTags=['QB','WR 1','WR 2','TE','RB'].map(position=>{
   document.body.append(tag);
   return tag;
 });
-const compactField=matchMedia('(max-width: 700px), (max-height: 520px)');
+
 let fieldBounds;
 function resize(){
   fieldBounds=$('game').getBoundingClientRect();
@@ -1013,7 +1013,7 @@ function resize(){
   if(!width||!height)return;
   renderer.setSize(width,height,false);
   const ratio=width/height;
-  const halfHeight=Math.max(compactField.matches&&document.body.classList.contains('playing')?29:32,22/ratio);
+  const halfHeight=Math.max(29,22/ratio);
   camera.left=-halfHeight*ratio;
   camera.right=halfHeight*ratio;
   camera.top=halfHeight;
@@ -1054,7 +1054,7 @@ function frame(now){
   if(state==='ready'){
     const focus=qb.x+(fieldBounds.width<fieldBounds.height?10:15);
     const edge=Math.min(camera.right,60);
-    cameraFocus=compactField.matches?THREE.MathUtils.clamp(focus,-10+edge,110-edge):focus;
+    cameraFocus=THREE.MathUtils.clamp(focus,-10+edge,110-edge);
   }
   if(state==='run')cameraFocus=Math.max(cameraFocus,carrier.x-camera.right*.55);
   if(state==='return')cameraFocus=THREE.MathUtils.lerp(cameraFocus,carrier.x,1-Math.exp(-dt*6));
@@ -1063,6 +1063,10 @@ function frame(now){
     // Opponents move left in world coordinates, toward our goal line.
     const focus=THREE.MathUtils.clamp(100-defensiveDrive.yard-7,8,92);
     cameraFocus=THREE.MathUtils.lerp(cameraFocus,focus,1-Math.exp(-dt*8));
+  }
+  if(state!=='menu'){
+    const edge=Math.min(camera.right,60);
+    cameraFocus=THREE.MathUtils.clamp(cameraFocus,-10+edge,110-edge);
   }
   playerGroup.visible=!onDefense;
   ball.visible=!onDefense;

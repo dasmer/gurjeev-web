@@ -1101,6 +1101,11 @@ function frame(now){
     const label=lastName?'#'+player.number+' '+lastName:tag.dataset.position;
     if(tag.textContent!==label)tag.textContent=label;
     const position=screenPoint(player);
+    if(position.x<fieldBounds.left||position.x>fieldBounds.right||
+        position.y<fieldBounds.top||position.y>fieldBounds.bottom){
+      tag.hidden=true;
+      return;
+    }
     tag.style.left=position.x+'px';
     const headHeight=player.sprite.visible?player.sprite.scale.y:2.6;
     const headOffset=headHeight*fieldBounds.height/(camera.top-camera.bottom);
